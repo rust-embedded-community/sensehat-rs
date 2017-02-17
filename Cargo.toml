@@ -5,3 +5,4 @@ authors = ["Jonathan Pallant <github@thejpster.org.uk>"]
 
 [dependencies]
 measurements = "0.2.1"
+i2cdev = "0.3.1"
