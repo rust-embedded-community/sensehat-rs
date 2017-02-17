@@ -93,7 +93,7 @@ impl SenseHat {
     /// than the barometer (+/- 2 degrees C), but over a wider range.
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_dev.smbus_read_byte_data(LPS25H_STATUS_REG)?;
-        if status & 2 != 0 {
+        if (status & 1) != 0 {
             let raw1 = self.pressure_dev.smbus_read_byte_data(LPS25H_TEMP_OUT_L)?;
             let raw2 = self.pressure_dev.smbus_read_byte_data(LPS25H_TEMP_OUT_H)?;
             let raw_total: u32 = ((raw2 as u32) << 8) + (raw1 as u32);
@@ -107,7 +107,7 @@ impl SenseHat {
     /// Returns a Pressure value from the barometer
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_dev.smbus_read_byte_data(LPS25H_STATUS_REG)?;
-        if status & 2 != 0 {
+        if (status & 2) != 0 {
             let raw1 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_XL)?;
             let raw2 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_L)?;
             let raw3 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_H)?;
