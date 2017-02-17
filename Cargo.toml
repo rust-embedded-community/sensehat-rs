@@ -1,0 +1,7 @@
+[package]
+name = "sensehat-rs"
+version = "0.1.0"
+authors = ["Jonathan Pallant <github@thejpster.org.uk>"]
+
+[dependencies]
+measurements = "0.2.1"
