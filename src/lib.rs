@@ -178,7 +178,7 @@ impl RelativeHumidity {
 
 impl fmt::Display for Pressure {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} mbar", self.as_hectopascals())
+        write!(f, "{:.0} mbar", self.as_millibars())
     }
 }
 
