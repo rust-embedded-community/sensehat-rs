@@ -29,6 +29,11 @@ pub enum SenseHatError {
 
 pub type SenseHatResult<T> = Result<T, SenseHatError>;
 
+// Registers for the HT221 humidity sensor
+const HTS221_CTRL1: u8 = XXX;
+const HTS221_AV_CONF: u8 = XXX;
+
+
 // Registers for the LPS25H pressure sensor
 // const LPS25H_REF_P_XL: u8 = 0x08;
 // const LPS25H_REF_P_XH: u8 = 0x09;
@@ -62,7 +67,45 @@ fn init_pressure(pressure: &mut LinuxI2CDevice) -> SenseHatResult<()> {
 }
 
 fn init_humidity(hum: &mut LinuxI2CDevice) -> SenseHatResult<()> {
-    // This is a bit more complicated...
+    // Init
+    hum.smbus_write_byte_data(HTS221_CTRL1, 0x87)?;
+    hum.smbus_write_byte_data(HTS221_AV_CONF, 0x1b)?;
+    // Get cal
+    let raw2 = hum.smbus_read_byte_data(HTS221_T1_T0)? as u16;
+    let raw1 = hum.smbus_read_byte_data(HTS221_T0_C_8)? as u16;
+    let t0_c_8 = ((raw2 & 0x03) << 8) | raw1;
+    let t0 = (t0_c_8 as f64) / 8.0;
+    let raw1 = hum.smbus_read_byte_data(HTS221_T1_C_8)? as u16;
+    let t1_c_8 = ((raw2 & 0x0C) << 6) | raw1;
+    let t1 = (t0_c_8 as f64) / 8.0;
+
+    let raw1 = hum.smbus_read_byte_data(HTS221_T0_OUT)? as u16;
+    let raw2 = hum.smbus_read_byte_data(HTS221_T0_OUT + 1)? as u16;
+    let t0_out = ((raw2 << 8) | raw1) as f64;
+
+    let raw1 = hum.smbus_read_byte_data(HTS221_T1_OUT)? as u16;
+    let raw2 = hum.smbus_read_byte_data(HTS221_T1_OUT + 1)? as u16;
+    let t1_out = ((raw2 << 8) | raw1) as f64;
+
+    let raw1 = hum.smbus_read_byte_data(HTS221_H0_H_2)?;
+    let h0 = (raw1 as f64) / 2.0;
+
+    let raw1 = hum.smbus_read_byte_data(HTS221_H1_H_2)?;
+    let h1 = (raw1 as f64) / 2.0;
+
+    let raw1 = hum.smbus_read_byte_data(HTS221_H0_T0_OUT)? as u16;
+    let raw2 = hum.smbus_read_byte_data(HTS221_H0_T0 + 1)? as u16;
+    let h0_t0_out = ((raw2 << 8) | raw1) as f64;
+
+    let raw1 = hum.smbus_read_byte_data(HTS221_H1_T0_OUT)? as u16;
+    let raw2 = hum.smbus_read_byte_data(HTS221_H1_T0 + 1)? as u16;
+    let h1_t0_out = ((raw2 << 8) | raw1) as f64;
+
+    let temp_m = (t1 - t0) / (t1_out - t0_out);
+    let temp_c = t0 - (temp_m * t0_out);
+    let hum_m = (h1 - h0) / (h1_t0_out - h0_t0_out);
+    let hum_c = h0 - (hum_m * h0_t0_out);
+
     Ok(())
 }
 
