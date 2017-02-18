@@ -96,7 +96,7 @@ impl SenseHat {
         if (status & 1) != 0 {
             let raw1 = self.pressure_dev.smbus_read_byte_data(LPS25H_TEMP_OUT_L)?;
             let raw2 = self.pressure_dev.smbus_read_byte_data(LPS25H_TEMP_OUT_H)?;
-            let raw_total: u32 = ((raw2 as u32) << 8) + (raw1 as u32);
+            let raw_total = (((raw2 as u16) << 8) + (raw1 as u16)) as i16;
             let celcius = ((raw_total as f64) / 480.0) + 42.5;
             Ok(Temperature::from_celsius(celcius))
         } else {
