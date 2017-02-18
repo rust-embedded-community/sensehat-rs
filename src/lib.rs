@@ -114,35 +114,35 @@ impl SenseHat {
         self.humidity_dev.smbus_write_byte_data(HTS221_CTRL1, 0x87)?;
         self.humidity_dev.smbus_write_byte_data(HTS221_AV_CONF, 0x1b)?;
         // Get cal
-        let raw2 = self.humidity_dev.smbus_read_byte_data(HTS221_T1_T0)? as u16;
-        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_T0_C_8)? as u16;
-        let t0_c_8 = ((raw2 & 0x03) << 8) | raw1;
+        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_T1_T0)? as u16;
+        let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_T0_C_8)? as u16;
+        let t0_c_8 = ((raw1 & 0x03) << 8) | raw0;
         let t0 = (t0_c_8 as f64) / 8.0;
-        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_T1_C_8)? as u16;
-        let t1_c_8 = ((raw2 & 0x0C) << 6) | raw1;
+        let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_T1_C_8)? as u16;
+        let t1_c_8 = ((raw1 & 0x0C) << 6) | raw0;
         let t1 = (t1_c_8 as f64) / 8.0;
 
-        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_T0_OUT)? as u16;
-        let raw2 = self.humidity_dev.smbus_read_byte_data(HTS221_T0_OUT + 1)? as u16;
-        let t0_out = ((raw2 << 8) | raw1) as f64;
+        let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_T0_OUT)? as u16;
+        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_T0_OUT + 1)? as u16;
+        let t0_out = (((raw1 << 8) | raw0) as i16) as f64;
 
-        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_T1_OUT)? as u16;
-        let raw2 = self.humidity_dev.smbus_read_byte_data(HTS221_T1_OUT + 1)? as u16;
-        let t1_out = ((raw2 << 8) | raw1) as f64;
+        let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_T1_OUT)? as u16;
+        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_T1_OUT + 1)? as u16;
+        let t1_out = (((raw1 << 8) | raw0) as i16) as f64;
 
-        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_H0_H_2)?;
-        let h0 = (raw1 as f64) / 2.0;
+        let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_H0_H_2)?;
+        let h0 = (raw0 as f64) / 2.0;
 
-        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_H1_H_2)?;
-        let h1 = (raw1 as f64) / 2.0;
+        let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_H1_H_2)?;
+        let h1 = (raw0 as f64) / 2.0;
 
-        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_H0_T0_OUT)? as u16;
-        let raw2 = self.humidity_dev.smbus_read_byte_data(HTS221_H0_T0_OUT + 1)? as u16;
-        let h0_t0_out = ((raw2 << 8) | raw1) as f64;
+        let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_H0_T0_OUT)? as u16;
+        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_H0_T0_OUT + 1)? as u16;
+        let h0_t0_out = ((raw1 << 8) | raw0) as f64;
 
-        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_H1_T0_OUT)? as u16;
-        let raw2 = self.humidity_dev.smbus_read_byte_data(HTS221_H1_T0_OUT + 1)? as u16;
-        let h1_t0_out = ((raw2 << 8) | raw1) as f64;
+        let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_H1_T0_OUT)? as u16;
+        let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_H1_T0_OUT + 1)? as u16;
+        let h1_t0_out = ((raw1 << 8) | raw0) as f64;
 
         self.temp_m = (t1 - t0) / (t1_out - t0_out);
         self.temp_c = t0 - (self.temp_m * t0_out);
@@ -157,9 +157,9 @@ impl SenseHat {
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_dev.smbus_read_byte_data(LPS25H_STATUS_REG)?;
         if (status & 1) != 0 {
-            let raw1 = self.pressure_dev.smbus_read_byte_data(LPS25H_TEMP_OUT_L)? as u16;
-            let raw2 = self.pressure_dev.smbus_read_byte_data(LPS25H_TEMP_OUT_H)? as u16;
-            let raw_total = ((raw2 << 8) + raw1) as i16;
+            let raw0 = self.pressure_dev.smbus_read_byte_data(LPS25H_TEMP_OUT_L)? as u16;
+            let raw1 = self.pressure_dev.smbus_read_byte_data(LPS25H_TEMP_OUT_H)? as u16;
+            let raw_total = ((raw1 << 8) + raw0) as i16;
             let celcius = ((raw_total as f64) / 480.0) + 42.5;
             Ok(Temperature::from_celsius(celcius))
         } else {
@@ -171,10 +171,10 @@ impl SenseHat {
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_dev.smbus_read_byte_data(LPS25H_STATUS_REG)?;
         if (status & 2) != 0 {
-            let raw1 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_XL)? as u32;
-            let raw2 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_L)? as u32;
-            let raw3 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_H)? as u32;
-            let raw_total: u32 = (raw3 << 16) + (raw2 << 8) + raw1;
+            let raw0 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_XL)? as u32;
+            let raw1 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_L)? as u32;
+            let raw2 = self.pressure_dev.smbus_read_byte_data(LPS25H_PRESS_OUT_H)? as u32;
+            let raw_total: u32 = (raw2 << 16) + (raw1 << 8) + raw0;
             let hectopascals = (raw_total as f64) / 4096.0;
             Ok(Pressure::from_hectopascals(hectopascals))
         } else {
@@ -188,9 +188,9 @@ impl SenseHat {
     pub fn get_temperature_from_humidity(&mut self) -> SenseHatResult<Temperature> {
         let status = self.humidity_dev.smbus_read_byte_data(HTS221_STATUS)?;
         if (status & 1) != 0 {
-            let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_TEMP_OUT_L)? as u16;
-            let raw2 = self.humidity_dev.smbus_read_byte_data(HTS221_TEMP_OUT_H)? as u16;
-            let raw_total = ((raw2 << 8) + raw1) as i16;
+            let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_TEMP_OUT_L)? as u16;
+            let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_TEMP_OUT_H)? as u16;
+            let raw_total = ((raw1 << 8) + raw0) as i16;
             let celcius = ((raw_total as f64) * self.temp_m) + self.temp_c;
             Ok(Temperature::from_celsius(celcius))
         } else {
@@ -202,9 +202,9 @@ impl SenseHat {
     pub fn get_humidity(&mut self) -> SenseHatResult<RelativeHumidity> {
         let status = self.humidity_dev.smbus_read_byte_data(HTS221_STATUS)?;
         if (status & 2) != 0 {
-            let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_HUMIDITY_OUT_L)? as u16;
-            let raw2 = self.humidity_dev.smbus_read_byte_data(HTS221_HUMIDITY_OUT_H)? as u16;
-            let raw_total = ((raw2 << 8) + raw1) as i16;
+            let raw0 = self.humidity_dev.smbus_read_byte_data(HTS221_HUMIDITY_OUT_L)? as u16;
+            let raw1 = self.humidity_dev.smbus_read_byte_data(HTS221_HUMIDITY_OUT_H)? as u16;
+            let raw_total = ((raw1 << 8) + raw0) as i16;
             let percent = ((raw_total as f64) * self.hum_m) + self.hum_c;
             Ok(RelativeHumidity::from_percent(percent))
         } else {
@@ -272,7 +272,7 @@ impl fmt::Display for Pressure {
 
 impl fmt::Display for RelativeHumidity {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}%", self.as_percent())
+        write!(f, "{:.1}%", self.as_percent())
     }
 }
 
