@@ -3,6 +3,7 @@ extern crate i2cdev;
 extern crate measurements;
 
 pub use measurements::Temperature;
+pub use measurements::Pressure;
 
 use i2cdev::core::I2CDevice;
 use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
@@ -10,14 +11,12 @@ use byteorder::{ByteOrder, LittleEndian};
 
 use std::fmt;
 
-pub struct Pressure {
-    value: f64,
-}
-
+/// Represents a relative humidity reading from the humidity sensor
 pub struct RelativeHumidity {
     value: f64,
 }
 
+/// Represents the SenseHat itself
 pub struct SenseHat {
     // LPS25H pressure sensor
     pressure_dev: LinuxI2CDevice,
@@ -29,6 +28,7 @@ pub struct SenseHat {
     hum_c: f64,
 }
 
+/// Errors that this crate can return
 #[derive(Debug)]
 pub enum SenseHatError {
     NotReady,
@@ -36,6 +36,7 @@ pub enum SenseHatError {
     I2CError(LinuxI2CError),
 }
 
+/// A shortcut for Results that can return `T` or `SenseHatError`
 pub type SenseHatResult<T> = Result<T, SenseHatError>;
 
 // Registers for the HT221 humidity sensor
@@ -210,41 +211,6 @@ impl From<LinuxI2CError> for SenseHatError {
     }
 }
 
-impl Pressure {
-    /// hectopascals is the same as a millibar
-    pub fn from_hectopascals(hectopascals: f64) -> Pressure {
-        Pressure { value: hectopascals }
-    }
-
-    pub fn as_hectopascals(&self) -> f64 {
-        self.value
-    }
-
-    pub fn as_millibars(&self) -> f64 {
-        self.value
-    }
-
-    pub fn as_bar(&self) -> f64 {
-        self.value / 1000.0
-    }
-
-    pub fn as_pascals(&self) -> f64 {
-        self.value * 100.0
-    }
-
-    pub fn as_kilopascals(&self) -> f64 {
-        self.value / 10.0
-    }
-
-    pub fn as_psi(&self) -> f64 {
-        self.as_bar() * 14.5038
-    }
-
-    pub fn as_atmospheres(&self) -> f64 {
-        self.as_bar() / 1.01325
-    }
-}
-
 impl RelativeHumidity {
     pub fn from_percent(pc: f64) -> RelativeHumidity {
         RelativeHumidity { value: pc }
@@ -252,12 +218,6 @@ impl RelativeHumidity {
 
     pub fn as_percent(&self) -> f64 {
         self.value
-    }
-}
-
-impl fmt::Display for Pressure {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:.0} mbar", self.as_millibars())
     }
 }
 
