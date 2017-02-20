@@ -1,5 +1,5 @@
 [package]
-name = "sensehat-rs"
+name = "sensehat"
 version = "0.1.0"
 authors = ["Jonathan Pallant <github@thejpster.org.uk>"]
 
