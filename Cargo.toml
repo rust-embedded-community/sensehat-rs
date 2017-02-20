@@ -2,6 +2,7 @@
 name = "sensehat"
 version = "0.1.0"
 authors = ["Jonathan Pallant <github@thejpster.org.uk>"]
+license-file = "LICENSE.md"
 
 [dependencies]
 # measurements = "0.2.1"
