@@ -1,6 +1,6 @@
-extern crate sensehat_rs;
+extern crate sensehat;
 
-use sensehat_rs::SenseHat;
+use sensehat::SenseHat;
 
 fn main() {
     let mut sense_hat = SenseHat::new().expect("Couldn't create Sense Hat object");
