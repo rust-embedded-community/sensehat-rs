@@ -3,6 +3,11 @@ name = "sensehat"
 version = "0.1.0"
 authors = ["Jonathan Pallant <github@thejpster.org.uk>"]
 license-file = "LICENSE.md"
+documentation = "https://docs.rs/crate/sensehat"
+repository = "https://github.com/thejpster/sensehat-rs"
+keywords = ["sensehat", "raspberry", "pi", "sensors"]
+description = "Interface with the Raspberry Pi Foundation's official Sense Hat sensor board."
+readme = "README.md"
 
 [dependencies]
 measurements = "0.3.0"
