@@ -1,6 +1,6 @@
 [package]
 name = "sensehat"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Jonathan Pallant <github@thejpster.org.uk>"]
 license-file = "LICENSE.md"
 documentation = "https://docs.rs/crate/sensehat"
