@@ -9,7 +9,7 @@ use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
 
 use std::fmt;
 
-mod ht221;
+mod hts221;
 mod lps25h;
 
 /// Represents a relative humidity reading from the humidity sensor
@@ -21,8 +21,8 @@ pub struct RelativeHumidity {
 pub struct SenseHat {
     // LPS25H pressure sensor
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,
-    // HT221 humidity sensor
-    humidity_chip: ht221::Ht221<LinuxI2CDevice>,
+    // HTS221 humidity sensor
+    humidity_chip: hts221::Hts221<LinuxI2CDevice>,
 }
 
 /// Errors that this crate can return
@@ -43,7 +43,7 @@ impl SenseHat {
     /// chips on the Sense Hat.
     pub fn new() -> SenseHatResult<SenseHat> {
         Ok(SenseHat {
-               humidity_chip: ht221::Ht221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
+               humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
                pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
            })
     }

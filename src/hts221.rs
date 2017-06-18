@@ -1,4 +1,5 @@
-//! Registers for the HT221 humidity sensor
+//! * Driver for the HTs221 humidity sensor
+//! See http://www.st.com/content/st_com/en/products/mems-and-sensors/humidity-sensors/hts221.html
 
 use i2cdev::core::I2CDevice;
 use byteorder::{ByteOrder, LittleEndian};
@@ -20,7 +21,7 @@ pub const REG_H1_T0_OUT: u8 = 0x3a;
 pub const REG_T0_OUT: u8 = 0x3c;
 pub const REG_T1_OUT: u8 = 0x3e;
 
-pub struct Ht221<T: I2CDevice + Sized> {
+pub struct Hts221<T: I2CDevice + Sized> {
     i2cdev: T,
     temp_m: f64,
     temp_c: f64,
@@ -28,12 +29,12 @@ pub struct Ht221<T: I2CDevice + Sized> {
     hum_c: f64,
 }
 
-impl<T> Ht221<T>
+impl<T> Hts221<T>
     where T: I2CDevice + Sized
 {
     /// Create a new pressure sensor handle for the given path/addr.
     /// Init sequence from https://github.com/RPi-Distro/RTIMULib
-    pub fn new(mut i2cdev: T) -> Result<Ht221<T>, T::Error> {
+    pub fn new(mut i2cdev: T) -> Result<Hts221<T>, T::Error> {
         // Init
 
         i2cdev.smbus_write_byte_data(REG_CTRL1, 0x87)?;
@@ -75,7 +76,7 @@ impl<T> Ht221<T>
         let hum_m = (h1 - h0) / (h1_t0_out - h0_t0_out);
         let hum_c = h0 - (hum_m * h0_t0_out);
 
-        Ok(Ht221 {
+        Ok(Hts221 {
                i2cdev: i2cdev,
                temp_m: temp_m,
                temp_c: temp_c,

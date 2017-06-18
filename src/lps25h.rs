@@ -1,4 +1,5 @@
-//! Registers for the LPS25H Pressure sensor
+//! * Driver for the LPS25H Pressure sensor
+//! See http://www.st.com/en/mems-and-sensors/lps25h.html
 
 use i2cdev::core::I2CDevice;
 use byteorder::{ByteOrder, LittleEndian};
