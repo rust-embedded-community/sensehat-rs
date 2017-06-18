@@ -11,6 +11,7 @@ use std::fmt;
 
 mod hts221;
 mod lps25h;
+mod lsm9ds1;
 
 /// Represents a relative humidity reading from the humidity sensor
 pub struct RelativeHumidity {
@@ -23,6 +24,8 @@ pub struct SenseHat {
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,
     // HTS221 humidity sensor
     humidity_chip: hts221::Hts221<LinuxI2CDevice>,
+    // LSM9DS1 IMU device
+    accelerometer_chip: lsm9ds1::Lsm9ds1<LinuxI2CDevice>,
 }
 
 /// Errors that this crate can return
@@ -31,6 +34,8 @@ pub enum SenseHatError {
     NotReady,
     GenericError,
     I2CError(LinuxI2CError),
+    SettingsFileNotFound,
+    IOError(::std::io::Error),
 }
 
 /// A shortcut for Results that can return `T` or `SenseHatError`
@@ -45,6 +50,8 @@ impl SenseHat {
         Ok(SenseHat {
                humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
                pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
+               accelerometer_chip: lsm9ds1::Lsm9ds1::new("RTIMULib",
+                                                         LinuxI2CDevice::new("/dev/i2c-1", 0x6a)?)?,
            })
     }
 
@@ -97,6 +104,17 @@ impl SenseHat {
 impl From<LinuxI2CError> for SenseHatError {
     fn from(err: LinuxI2CError) -> SenseHatError {
         SenseHatError::I2CError(err)
+    }
+}
+
+impl From<lsm9ds1::Error<LinuxI2CDevice>> for SenseHatError {
+    fn from(err: lsm9ds1::Error<LinuxI2CDevice>) -> SenseHatError {
+        match err {
+            lsm9ds1::Error::SettingsFileNotFound => SenseHatError::SettingsFileNotFound,
+            lsm9ds1::Error::I2CError(err) => SenseHatError::I2CError(err),
+            lsm9ds1::Error::NoHomeDir => SenseHatError::SettingsFileNotFound,
+            lsm9ds1::Error::IOError(e) => SenseHatError::IOError(e),
+        }
     }
 }
 
