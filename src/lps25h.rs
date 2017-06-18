@@ -18,7 +18,8 @@ pub struct Lps25h<T: I2CDevice + Sized> {
     i2cdev: T,
 }
 
-impl<T> Lps25h<T> where T: I2CDevice + Sized
+impl<T> Lps25h<T>
+    where T: I2CDevice + Sized
 {
     /// Create a new pressure sensor handle for the given path/addr.
     /// Init sequence from https://github.com/RPi-Distro/RTIMULib
@@ -38,20 +39,30 @@ impl<T> Lps25h<T> where T: I2CDevice + Sized
 
     /// Obtain the temperature reading from the chip.
     /// T(°C) = 42.5 + (TEMP_OUT / 480)
-    pub fn read_temp(&mut self) -> Result<i16, T::Error> {
+    pub fn get_temp(&mut self) -> Result<i16, T::Error> {
         let mut buf = [0u8; 2];
         buf[0] = self.i2cdev.smbus_read_byte_data(REG_TEMP_OUT_L)?;
         buf[1] = self.i2cdev.smbus_read_byte_data(REG_TEMP_OUT_H)?;
         Ok(LittleEndian::read_i16(&buf))
     }
 
+    /// Obtain the temperature reading from the chip in deg C.
+    pub fn get_temp_celcius(&mut self) -> Result<f64, T::Error> {
+        self.get_temp().and_then(|c| Ok((c as f64 / 480.0) + 42.5))
+    }
+
     /// Obtain the pressure reading from the chip.
     /// Pout(hPa) = PRESS_OUT / 4096
-    pub fn read_pressure(&mut self) -> Result<u32, T::Error> {
+    pub fn get_pressure(&mut self) -> Result<u32, T::Error> {
         let mut buf = [0u8; 4];
         buf[0] = self.i2cdev.smbus_read_byte_data(REG_PRESS_OUT_XL)?;
         buf[1] = self.i2cdev.smbus_read_byte_data(REG_PRESS_OUT_L)?;
         buf[2] = self.i2cdev.smbus_read_byte_data(REG_PRESS_OUT_H)?;
         Ok(LittleEndian::read_u32(&buf))
+    }
+
+    /// Obtain the pressure reading from the chip in hPa.
+    pub fn get_pressure_hpa(&mut self) -> Result<f64, T::Error> {
+        self.get_pressure().and_then(|c| Ok(c as f64 / 4096.0))
     }
 }

@@ -5,9 +5,7 @@ extern crate measurements;
 pub use measurements::Temperature;
 pub use measurements::Pressure;
 
-use i2cdev::core::I2CDevice;
 use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
-use byteorder::{ByteOrder, LittleEndian};
 
 use std::fmt;
 
@@ -24,11 +22,7 @@ pub struct SenseHat {
     // LPS25H pressure sensor
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,
     // HT221 humidity sensor
-    humidity_dev: LinuxI2CDevice,
-    temp_m: f64,
-    temp_c: f64,
-    hum_m: f64,
-    hum_c: f64,
+    humidity_chip: ht221::Ht221<LinuxI2CDevice>,
 }
 
 /// Errors that this crate can return
@@ -48,63 +42,10 @@ impl SenseHat {
     /// Will open the relevant I2C devices and then attempt to initialise the
     /// chips on the Sense Hat.
     pub fn new() -> SenseHatResult<SenseHat> {
-        let mut hat = SenseHat {
-            humidity_dev: LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?,
-            pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
-            temp_m: 0.0,
-            temp_c: 0.0,
-            hum_m: 0.0,
-            hum_c: 0.0,
-        };
-
-        hat.init_humidity()?;
-
-        Ok(hat)
-    }
-
-    /// Init sequence from https://github.com/RPi-Distro/RTIMULib
-    fn init_humidity(&mut self) -> SenseHatResult<()> {
-        // Init
-        self.humidity_dev.smbus_write_byte_data(ht221::REG_CTRL1, 0x87)?;
-        self.humidity_dev.smbus_write_byte_data(ht221::REG_AV_CONF, 0x1b)?;
-
-        // Get cal
-        let mut buf = [0u8; 2];
-        buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_T0_C_8)?;
-        buf[1] = self.humidity_dev.smbus_read_byte_data(ht221::REG_T1_T0)? & 0x03;
-        let t0 = (LittleEndian::read_i16(&buf) as f64) / 8.0;
-        buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_T1_C_8)?;
-        buf[1] = (self.humidity_dev.smbus_read_byte_data(ht221::REG_T1_T0)? & 0x0C) >> 2;
-        let t1 = (LittleEndian::read_i16(&buf) as f64) / 8.0;
-
-        buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_T0_OUT)?;
-        buf[1] = self.humidity_dev.smbus_read_byte_data(ht221::REG_T0_OUT + 1)?;
-        let t0_out = LittleEndian::read_i16(&buf) as f64;
-
-        buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_T1_OUT)?;
-        buf[1] = self.humidity_dev.smbus_read_byte_data(ht221::REG_T1_OUT + 1)?;
-        let t1_out = LittleEndian::read_i16(&buf) as f64;
-
-        buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_H0_H_2)?;
-        let h0 = (buf[0] as f64) / 2.0;
-
-        buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_H1_H_2)?;
-        let h1 = (buf[0] as f64) / 2.0;
-
-        buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_H0_T0_OUT)?;
-        buf[1] = self.humidity_dev.smbus_read_byte_data(ht221::REG_H0_T0_OUT + 1)?;
-        let h0_t0_out = LittleEndian::read_i16(&buf) as f64;
-
-        buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_H1_T0_OUT)?;
-        buf[1] = self.humidity_dev.smbus_read_byte_data(ht221::REG_H1_T0_OUT + 1)?;
-        let h1_t0_out = LittleEndian::read_i16(&buf) as f64;
-
-        self.temp_m = (t1 - t0) / (t1_out - t0_out);
-        self.temp_c = t0 - (self.temp_m * t0_out);
-        self.hum_m = (h1 - h0) / (h1_t0_out - h0_t0_out);
-        self.hum_c = h0 - (self.hum_m * h0_t0_out);
-
-        Ok(())
+        Ok(SenseHat {
+               humidity_chip: ht221::Ht221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
+               pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
+           })
     }
 
     /// Returns a Temperature reading from the barometer.  It's less accurate
@@ -112,8 +53,7 @@ impl SenseHat {
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
-            let celcius = ((self.pressure_chip.read_temp()? as f64) / 480.0) + 42.5;
-            Ok(Temperature::from_celsius(celcius))
+            Ok(Temperature::from_celsius(self.pressure_chip.get_temp_celcius()?))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -123,8 +63,7 @@ impl SenseHat {
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
-            let hectopascals = (self.pressure_chip.read_pressure()? as f64) / 4096.0;
-            Ok(Pressure::from_hectopascals(hectopascals))
+            Ok(Pressure::from_hectopascals(self.pressure_chip.get_pressure_hpa()?))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -134,12 +73,9 @@ impl SenseHat {
     /// accurate than the barometer (+/- 0.5 degrees C), but over a smaller
     /// range.
     pub fn get_temperature_from_humidity(&mut self) -> SenseHatResult<Temperature> {
-        let status = self.humidity_dev.smbus_read_byte_data(ht221::REG_STATUS)?;
+        let status = self.humidity_chip.status()?;
         if (status & 1) != 0 {
-            let mut buf = [0u8; 2];
-            buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_TEMP_OUT_L)?;
-            buf[1] = self.humidity_dev.smbus_read_byte_data(ht221::REG_TEMP_OUT_H)?;
-            let celcius = ((LittleEndian::read_i16(&buf) as f64) * self.temp_m) + self.temp_c;
+            let celcius = self.humidity_chip.get_temperature_celcius()?;
             Ok(Temperature::from_celsius(celcius))
         } else {
             Err(SenseHatError::NotReady)
@@ -148,12 +84,9 @@ impl SenseHat {
 
     /// Returns a RelativeHumidity value in percent between 0 and 100
     pub fn get_humidity(&mut self) -> SenseHatResult<RelativeHumidity> {
-        let status = self.humidity_dev.smbus_read_byte_data(ht221::REG_STATUS)?;
+        let status = self.humidity_chip.status()?;
         if (status & 2) != 0 {
-            let mut buf = [0u8; 2];
-            buf[0] = self.humidity_dev.smbus_read_byte_data(ht221::REG_HUMIDITY_OUT_L)?;
-            buf[1] = self.humidity_dev.smbus_read_byte_data(ht221::REG_HUMIDITY_OUT_H)?;
-            let percent = ((LittleEndian::read_i16(&buf) as f64) * self.hum_m) + self.hum_c;
+            let percent = self.humidity_chip.get_relative_humidity_percent()?;
             Ok(RelativeHumidity::from_percent(percent))
         } else {
             Err(SenseHatError::NotReady)
