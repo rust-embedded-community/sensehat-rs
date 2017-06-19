@@ -19,13 +19,13 @@ pub struct RelativeHumidity {
 }
 
 /// Represents the SenseHat itself
-pub struct SenseHat {
+pub struct SenseHat<'a> {
     // LPS25H pressure sensor
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,
     // HTS221 humidity sensor
     humidity_chip: hts221::Hts221<LinuxI2CDevice>,
     // LSM9DS1 IMU device
-    accelerometer_chip: lsm9ds1::Lsm9ds1<LinuxI2CDevice>,
+    accelerometer_chip: lsm9ds1::Lsm9ds1<'a>,
 }
 
 /// Errors that this crate can return
@@ -34,24 +34,22 @@ pub enum SenseHatError {
     NotReady,
     GenericError,
     I2CError(LinuxI2CError),
-    SettingsFileNotFound,
-    IOError(::std::io::Error),
+    LSM9DS1Error(lsm9ds1::Error),
 }
 
 /// A shortcut for Results that can return `T` or `SenseHatError`
 pub type SenseHatResult<T> = Result<T, SenseHatError>;
 
-impl SenseHat {
+impl<'a> SenseHat<'a> {
     /// Try and create a new SenseHat object.
     ///
     /// Will open the relevant I2C devices and then attempt to initialise the
     /// chips on the Sense Hat.
-    pub fn new() -> SenseHatResult<SenseHat> {
+    pub fn new() -> SenseHatResult<SenseHat<'a>> {
         Ok(SenseHat {
                humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
                pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
-               accelerometer_chip: lsm9ds1::Lsm9ds1::new("RTIMULib",
-                                                         LinuxI2CDevice::new("/dev/i2c-1", 0x6a)?)?,
+               accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
            })
     }
 
@@ -107,14 +105,9 @@ impl From<LinuxI2CError> for SenseHatError {
     }
 }
 
-impl From<lsm9ds1::Error<LinuxI2CDevice>> for SenseHatError {
-    fn from(err: lsm9ds1::Error<LinuxI2CDevice>) -> SenseHatError {
-        match err {
-            lsm9ds1::Error::SettingsFileNotFound => SenseHatError::SettingsFileNotFound,
-            lsm9ds1::Error::I2CError(err) => SenseHatError::I2CError(err),
-            lsm9ds1::Error::NoHomeDir => SenseHatError::SettingsFileNotFound,
-            lsm9ds1::Error::IOError(e) => SenseHatError::IOError(e),
-        }
+impl From<lsm9ds1::Error> for SenseHatError {
+    fn from(err: lsm9ds1::Error) -> SenseHatError {
+        SenseHatError::LSM9DS1Error(err)
     }
 }
 
