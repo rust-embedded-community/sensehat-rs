@@ -1,6 +1,7 @@
 extern crate byteorder;
 extern crate i2cdev;
 extern crate measurements;
+extern crate libc;
 
 pub use measurements::Temperature;
 pub use measurements::Pressure;
@@ -18,14 +19,24 @@ pub struct RelativeHumidity {
     value: f64,
 }
 
+/// Represents an orientation from the IMU
+#[derive(Debug, Copy, Clone)]
+pub struct OrientationDegrees {
+    pub roll: f64,
+    pub pitch: f64,
+    pub yaw: f64
+}
+
 /// Represents the SenseHat itself
 pub struct SenseHat<'a> {
-    // LPS25H pressure sensor
+    /// LPS25H pressure sensor
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,
-    // HTS221 humidity sensor
+    /// HTS221 humidity sensor
     humidity_chip: hts221::Hts221<LinuxI2CDevice>,
-    // LSM9DS1 IMU device
+    /// LSM9DS1 IMU device
     accelerometer_chip: lsm9ds1::Lsm9ds1<'a>,
+    /// Cached data
+    orientation: OrientationDegrees,
 }
 
 /// Errors that this crate can return
@@ -50,6 +61,7 @@ impl<'a> SenseHat<'a> {
                humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
                pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
                accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
+               orientation: OrientationDegrees { roll: 0.0, pitch: 0.0, yaw: 0.0 },
            })
     }
 
@@ -96,6 +108,15 @@ impl<'a> SenseHat<'a> {
         } else {
             Err(SenseHatError::NotReady)
         }
+    }
+
+    /// Returns a vector representing the current orientation.
+    /// The values are in radians.
+    pub fn get_orientation_degrees(&mut self) -> SenseHatResult<OrientationDegrees> {
+        if self.accelerometer_chip.imu_read() {
+            self.orientation = self.accelerometer_chip.get_imu_data()?;
+        }
+        Ok(self.orientation)
     }
 }
 

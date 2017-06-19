@@ -8,9 +8,17 @@ struct WrapperContext {
     uint32_t magic;
 };
 
+struct Orientation {
+    double x;
+    double y;
+    double z;
+};
+
 extern "C" {
     WrapperContext* rtimulib_wrapper_create(void);
     void rtimulib_wrapper_destroy(WrapperContext* p_context);
+    int rtimulib_wrapper_imu_read(WrapperContext* p_context);
+    int rtimulib_wrapper_get_imu_data(WrapperContext* p_context, Orientation* p_output);
 }
 
 WrapperContext* rtimulib_wrapper_create(void) {
@@ -32,4 +40,18 @@ void rtimulib_wrapper_destroy(WrapperContext* p_context) {
     delete p_context->p_settings;
     delete p_context->p_imu;
     delete p_context;
+}
+
+int rtimulib_wrapper_imu_read(WrapperContext* p_context) {
+    return p_context->p_imu->IMURead();
+}
+
+int rtimulib_wrapper_get_imu_data(WrapperContext* p_context, Orientation* p_output) {
+    RTIMU_DATA imuData = p_context->p_imu->getIMUData();
+    if (imuData.fusionPoseValid && p_output) {
+        p_output->x = imuData.fusionPose.x();
+        p_output->y = imuData.fusionPose.y();
+        p_output->z = imuData.fusionPose.z();
+    };
+    return imuData.fusionPoseValid;
 }

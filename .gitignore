@@ -8,3 +8,5 @@ Cargo.lock
 
 # Rustfmt backup files
 *.bk
+# Astyle backup files
+*.orig

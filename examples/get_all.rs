@@ -16,4 +16,9 @@ fn main() {
     println!("It's {} relative humidity", rh);
     let pressure = sense_hat.get_pressure().expect("Couldn't get pressure");
     println!("The pressure is {}", pressure);
+    loop {
+        let orientation = sense_hat.get_orientation_degrees().expect("Couldn't get orientation");
+        println!("The orientation is {:?}", orientation);
+        ::std::thread::sleep(::std::time::Duration::from_millis(500));
+    }
 }
