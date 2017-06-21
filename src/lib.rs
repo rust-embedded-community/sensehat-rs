@@ -24,7 +24,7 @@ pub struct RelativeHumidity {
 pub struct OrientationDegrees {
     pub roll: f64,
     pub pitch: f64,
-    pub yaw: f64
+    pub yaw: f64,
 }
 
 /// Represents the SenseHat itself
@@ -58,11 +58,15 @@ impl<'a> SenseHat<'a> {
     /// chips on the Sense Hat.
     pub fn new() -> SenseHatResult<SenseHat<'a>> {
         Ok(SenseHat {
-               humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
-               pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
-               accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
-               orientation: OrientationDegrees { roll: 0.0, pitch: 0.0, yaw: 0.0 },
-           })
+            humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
+            pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
+            accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
+            orientation: OrientationDegrees {
+                roll: 0.0,
+                pitch: 0.0,
+                yaw: 0.0,
+            },
+        })
     }
 
     /// Returns a Temperature reading from the barometer.  It's less accurate
@@ -70,7 +74,9 @@ impl<'a> SenseHat<'a> {
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
-            Ok(Temperature::from_celsius(self.pressure_chip.get_temp_celcius()?))
+            Ok(Temperature::from_celsius(
+                self.pressure_chip.get_temp_celcius()?,
+            ))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -80,7 +86,9 @@ impl<'a> SenseHat<'a> {
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
-            Ok(Pressure::from_hectopascals(self.pressure_chip.get_pressure_hpa()?))
+            Ok(Pressure::from_hectopascals(
+                self.pressure_chip.get_pressure_hpa()?,
+            ))
         } else {
             Err(SenseHatError::NotReady)
         }

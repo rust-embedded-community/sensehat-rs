@@ -30,7 +30,8 @@ pub struct Hts221<T: I2CDevice + Sized> {
 }
 
 impl<T> Hts221<T>
-    where T: I2CDevice + Sized
+where
+    T: I2CDevice + Sized,
 {
     /// Create a new pressure sensor handle for the given path/addr.
     /// Init sequence from https://github.com/RPi-Distro/RTIMULib
@@ -77,12 +78,12 @@ impl<T> Hts221<T>
         let hum_c = h0 - (hum_m * h0_t0_out);
 
         Ok(Hts221 {
-               i2cdev: i2cdev,
-               temp_m: temp_m,
-               temp_c: temp_c,
-               hum_m: hum_m,
-               hum_c: hum_c,
-           })
+            i2cdev: i2cdev,
+            temp_m: temp_m,
+            temp_c: temp_c,
+            hum_m: hum_m,
+            hum_c: hum_c,
+        })
     }
 
     /// Obtain the status bitfield from the chip.

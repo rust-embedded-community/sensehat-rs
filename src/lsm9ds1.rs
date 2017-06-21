@@ -21,14 +21,17 @@ extern "C" {
     fn rtimulib_wrapper_create() -> *mut RTIMULibContext;
     fn rtimulib_wrapper_destroy(p_context: *mut RTIMULibContext);
     fn rtimulib_wrapper_imu_read(p_context: *mut RTIMULibContext) -> libc::c_int;
-    fn rtimulib_wrapper_get_imu_data(p_context: *mut RTIMULibContext, orientation: *mut COrientation) -> libc::c_int;
+    fn rtimulib_wrapper_get_imu_data(
+        p_context: *mut RTIMULibContext,
+        orientation: *mut COrientation,
+    ) -> libc::c_int;
 }
 
 #[repr(C)]
 struct COrientation {
     x: libc::c_double,
     y: libc::c_double,
-    z: libc::c_double
+    z: libc::c_double,
 }
 
 
@@ -59,10 +62,8 @@ impl<'a> Lsm9ds1<'a> {
 
     /// Make the IMU do some work. When this function returns true, the IMU
     /// has data we can fetch with `get_imu_data()`.
-    pub fn imu_read(&mut self) ->  bool {
-        let result = unsafe {
-            rtimulib_wrapper_imu_read(self.rtimulib_ref)
-        };
+    pub fn imu_read(&mut self) -> bool {
+        let result = unsafe { rtimulib_wrapper_imu_read(self.rtimulib_ref) };
         return result == 0;
     }
 
@@ -70,11 +71,9 @@ impl<'a> Lsm9ds1<'a> {
         let mut storage = COrientation {
             x: 0.0,
             y: 0.0,
-            z: 0.0
+            z: 0.0,
         };
-        let result = unsafe {
-            rtimulib_wrapper_get_imu_data(self.rtimulib_ref, &mut storage)
-        };
+        let result = unsafe { rtimulib_wrapper_get_imu_data(self.rtimulib_ref, &mut storage) };
         if result == 1 {
             Ok(OrientationDegrees {
                 roll: radians_to_degrees(storage.x),

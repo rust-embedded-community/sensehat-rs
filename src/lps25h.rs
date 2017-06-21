@@ -20,7 +20,8 @@ pub struct Lps25h<T: I2CDevice + Sized> {
 }
 
 impl<T> Lps25h<T>
-    where T: I2CDevice + Sized
+where
+    T: I2CDevice + Sized,
 {
     /// Create a new pressure sensor handle for the given path/addr.
     /// Init sequence from https://github.com/RPi-Distro/RTIMULib
