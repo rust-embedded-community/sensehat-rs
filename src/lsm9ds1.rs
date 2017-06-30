@@ -64,7 +64,7 @@ impl<'a> Lsm9ds1<'a> {
     /// has data we can fetch with `get_imu_data()`.
     pub fn imu_read(&mut self) -> bool {
         let result = unsafe { rtimulib_wrapper_imu_read(self.rtimulib_ref) };
-        return result == 0;
+        return result != 0;
     }
 
     pub fn get_imu_data(&mut self) -> Result<OrientationDegrees, Error> {
@@ -74,7 +74,7 @@ impl<'a> Lsm9ds1<'a> {
             z: 0.0,
         };
         let result = unsafe { rtimulib_wrapper_get_imu_data(self.rtimulib_ref, &mut storage) };
-        if result == 1 {
+        if result != 0 {
             Ok(OrientationDegrees {
                 roll: radians_to_degrees(storage.x),
                 pitch: radians_to_degrees(storage.y),
