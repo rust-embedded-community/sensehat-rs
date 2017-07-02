@@ -14,17 +14,24 @@ mod hts221;
 mod lps25h;
 mod lsm9ds1;
 
+/// An angle between two lines
+#[derive(Debug, Copy, Clone)]
+pub struct Angle {
+    value: f64,
+}
+
 /// Represents a relative humidity reading from the humidity sensor
+#[derive(Debug, Copy, Clone)]
 pub struct RelativeHumidity {
     value: f64,
 }
 
 /// Represents an orientation from the IMU
 #[derive(Debug, Copy, Clone)]
-pub struct OrientationDegrees {
-    pub roll: f64,
-    pub pitch: f64,
-    pub yaw: f64,
+pub struct Orientation {
+    pub roll: Angle,
+    pub pitch: Angle,
+    pub yaw: Angle,
 }
 
 /// Represents the SenseHat itself
@@ -36,7 +43,7 @@ pub struct SenseHat<'a> {
     /// LSM9DS1 IMU device
     accelerometer_chip: lsm9ds1::Lsm9ds1<'a>,
     /// Cached data
-    orientation: OrientationDegrees,
+    orientation: Orientation,
 }
 
 /// Errors that this crate can return
@@ -61,10 +68,10 @@ impl<'a> SenseHat<'a> {
             humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
             pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
             accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
-            orientation: OrientationDegrees {
-                roll: 0.0,
-                pitch: 0.0,
-                yaw: 0.0,
+            orientation: Orientation {
+                roll: Angle::from_degrees(0.0),
+                pitch: Angle::from_degrees(0.0),
+                yaw: Angle::from_degrees(0.0),
             },
         })
     }
@@ -74,9 +81,7 @@ impl<'a> SenseHat<'a> {
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
-            Ok(Temperature::from_celsius(
-                self.pressure_chip.get_temp_celcius()?,
-            ))
+            Ok(Temperature::from_celsius(self.pressure_chip.get_temp_celcius()?))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -86,9 +91,7 @@ impl<'a> SenseHat<'a> {
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
-            Ok(Pressure::from_hectopascals(
-                self.pressure_chip.get_pressure_hpa()?,
-            ))
+            Ok(Pressure::from_hectopascals(self.pressure_chip.get_pressure_hpa()?))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -118,14 +121,59 @@ impl<'a> SenseHat<'a> {
         }
     }
 
-    /// Returns a vector representing the current orientation.
-    /// The values are in radians.
-    pub fn get_orientation_degrees(&mut self) -> SenseHatResult<OrientationDegrees> {
+    /// Returns a vector representing the current orientation, using all
+    /// three sensors.
+    pub fn get_orientation(&mut self) -> SenseHatResult<Orientation> {
+        self.accelerometer_chip.set_fusion();
         if self.accelerometer_chip.imu_read() {
             self.orientation = self.accelerometer_chip.get_imu_data()?;
         }
         Ok(self.orientation)
     }
+
+    /// Get the compass heading (ignoring gyro and magnetometer)
+    pub fn get_compass(&mut self) -> SenseHatResult<Angle> {
+        self.accelerometer_chip.set_compass_only();
+        if self.accelerometer_chip.imu_read() {
+            // Don't cache this data
+            let orientation = self.accelerometer_chip.get_imu_data()?;
+            Ok(orientation.yaw)
+        } else {
+            Err(SenseHatError::NotReady)
+        }
+    }
+
+    /// Returns a vector representing the current orientation using only
+    /// the gyroscope.
+    pub fn get_gyro(&mut self) -> SenseHatResult<Orientation> {
+        self.accelerometer_chip.set_gyro_only();
+        if self.accelerometer_chip.imu_read() {
+            let orientation = self.accelerometer_chip.get_imu_data()?;
+            Ok(orientation)
+        } else {
+            Err(SenseHatError::NotReady)
+        }
+    }
+
+    /// Returns a vector representing the current orientation using only
+    /// the accelerometer.
+    pub fn get_accel(&mut self) -> SenseHatResult<Orientation> {
+        self.accelerometer_chip.set_accel_only();
+        if self.accelerometer_chip.imu_read() {
+            let orientation = self.accelerometer_chip.get_imu_data()?;
+            Ok(orientation)
+        } else {
+            Err(SenseHatError::NotReady)
+        }
+    }
+}
+
+fn radians_to_degrees(radians: f64) -> f64 {
+    360.0 * (radians / (::std::f64::consts::PI * 2.0))
+}
+
+fn degrees_to_radians(degrees: f64) -> f64 {
+    (degrees * (::std::f64::consts::PI * 2.0)) / 360.0
 }
 
 impl From<LinuxI2CError> for SenseHatError {
@@ -137,6 +185,24 @@ impl From<LinuxI2CError> for SenseHatError {
 impl From<lsm9ds1::Error> for SenseHatError {
     fn from(err: lsm9ds1::Error) -> SenseHatError {
         SenseHatError::LSM9DS1Error(err)
+    }
+}
+
+impl Angle {
+    pub fn from_radians(rad: f64) -> Angle {
+        Angle { value: radians_to_degrees(rad) }
+    }
+
+    pub fn as_radians(&self) -> f64 {
+        degrees_to_radians(self.value)
+    }
+
+    pub fn from_degrees(deg: f64) -> Angle {
+        Angle { value: deg }
+    }
+
+    pub fn as_degrees(&self) -> f64 {
+        self.value
     }
 }
 
@@ -153,6 +219,12 @@ impl RelativeHumidity {
 impl fmt::Display for RelativeHumidity {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:.1}%", self.as_percent())
+    }
+}
+
+impl fmt::Display for Angle {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:.1}°", self.as_degrees())
     }
 }
 
