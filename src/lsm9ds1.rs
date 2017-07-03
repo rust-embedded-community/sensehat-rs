@@ -17,14 +17,17 @@ enum RTIMULibContext {}
 extern "C" {
     fn rtimulib_wrapper_create() -> *mut RTIMULibContext;
     fn rtimulib_wrapper_destroy(p_context: *mut RTIMULibContext);
-    fn rtimulib_set_sensors(p_context: *mut RTIMULibContext,
-                            gyro: libc::c_int,
-                            accel: libc::c_int,
-                            compass: libc::c_int);
+    fn rtimulib_set_sensors(
+        p_context: *mut RTIMULibContext,
+        gyro: libc::c_int,
+        accel: libc::c_int,
+        compass: libc::c_int,
+    );
     fn rtimulib_wrapper_imu_read(p_context: *mut RTIMULibContext) -> libc::c_int;
-    fn rtimulib_wrapper_get_imu_data(p_context: *mut RTIMULibContext,
-                                     orientation: *mut COrientation)
-                                     -> libc::c_int;
+    fn rtimulib_wrapper_get_imu_data(
+        p_context: *mut RTIMULibContext,
+        orientation: *mut COrientation,
+    ) -> libc::c_int;
 }
 
 #[repr(C)]
