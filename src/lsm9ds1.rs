@@ -1,7 +1,7 @@
 //! * Driver for the LSM9DS1 accelerometer
-//! See http://www.st.com/en/mems-and-sensors/lsm9ds1.html
+//! See `http://www.st.com/en/mems-and-sensors/lsm9ds1.html`
 //!
-//! Driver needs to follow https://github.com/RPi-Distro/python-sense-hat/blob/master/sense_hat/sense_hat.py
+//! Driver needs to follow `https://github.com/RPi-Distro/python-sense-hat/blob/master/sense_hat/sense_hat.py`
 //! in how it manages the settings file.
 //!
 //! It turns out handling IMUs is really complicated and involves a ton of
@@ -67,7 +67,7 @@ impl<'a> Lsm9ds1<'a> {
     /// has data we can fetch with `get_imu_data()`.
     pub fn imu_read(&mut self) -> bool {
         let result = unsafe { rtimulib_wrapper_imu_read(self.rtimulib_ref) };
-        return result != 0;
+        result != 0
     }
 
     pub fn set_fusion(&mut self) {

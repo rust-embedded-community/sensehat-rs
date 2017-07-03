@@ -34,7 +34,7 @@ pub struct Orientation {
     pub yaw: Angle,
 }
 
-/// Represents the SenseHat itself
+/// Represents the Sense Hat itself
 pub struct SenseHat<'a> {
     /// LPS25H pressure sensor
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,

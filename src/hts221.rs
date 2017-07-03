@@ -1,5 +1,5 @@
-//! * Driver for the HTs221 humidity sensor
-//! See http://www.st.com/content/st_com/en/products/mems-and-sensors/humidity-sensors/hts221.html
+//! * Driver for the HTS221 humidity sensor
+//! See `http://www.st.com/content/st_com/en/products/mems-and-sensors/humidity-sensors/hts221.html`
 
 use i2cdev::core::I2CDevice;
 use byteorder::{ByteOrder, LittleEndian};
