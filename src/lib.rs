@@ -1,6 +1,8 @@
 extern crate byteorder;
 extern crate i2cdev;
 extern crate measurements;
+
+#[cfg(feature="rtimu")]
 extern crate libc;
 
 pub use measurements::Temperature;
@@ -12,7 +14,14 @@ use std::fmt;
 
 mod hts221;
 mod lps25h;
+
+#[cfg(feature = "rtimu")]
 mod lsm9ds1;
+
+#[cfg(not(feature = "rtimu"))]
+mod lsm9ds1_dummy;
+#[cfg(not(feature = "rtimu"))]
+use lsm9ds1_dummy as lsm9ds1;
 
 /// An angle between two lines
 #[derive(Debug, Copy, Clone)]

@@ -1,6 +1,6 @@
 [package]
 name = "sensehat"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Jonathan Pallant <github@thejpster.org.uk>"]
 license-file = "LICENSE.md"
 documentation = "https://docs.rs/crate/sensehat"
@@ -13,7 +13,19 @@ readme = "README.md"
 measurements = "0.4.0"
 i2cdev = "0.3.1"
 byteorder = "1.0.0"
-libc = "0.2.0"
+libc = { version = "0.2.0", optional = true }
 
 [build-dependencies]
 gcc = "0.3"
+
+[features]
+# The default set of optional packages. Most people will want to use these
+# packages, but they are strictly optional. Note that `session` is not a package
+# but rather another feature listed in this manifest.
+default = ["rtimu"]
+rtimu = [ "libc" ]
+
+[package.metadata.docs.rs]
+features = [ ]
+all-features = false
+no-default-features = true
