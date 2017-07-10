@@ -2,7 +2,7 @@ extern crate byteorder;
 extern crate i2cdev;
 extern crate measurements;
 
-#[cfg(feature="rtimu")]
+#[cfg(feature = "rtimu")]
 extern crate libc;
 
 pub use measurements::Temperature;

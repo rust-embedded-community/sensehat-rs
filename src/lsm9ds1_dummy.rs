@@ -13,7 +13,7 @@ pub enum Error {
 }
 
 pub struct Lsm9ds1<'a> {
-    phantom: PhantomData<&'a u32>
+    phantom: PhantomData<&'a u32>,
 }
 
 impl<'a> Lsm9ds1<'a> {
@@ -28,21 +28,13 @@ impl<'a> Lsm9ds1<'a> {
         false
     }
 
-    pub fn set_fusion(&mut self) {
+    pub fn set_fusion(&mut self) {}
 
-    }
+    pub fn set_compass_only(&mut self) {}
 
-    pub fn set_compass_only(&mut self) {
+    pub fn set_gyro_only(&mut self) {}
 
-    }
-
-    pub fn set_gyro_only(&mut self) {
-
-    }
-
-    pub fn set_accel_only(&mut self) {
-
-    }
+    pub fn set_accel_only(&mut self) {}
 
     pub fn get_imu_data(&mut self) -> Result<Orientation, Error> {
         Err(Error::RTIMULibError)

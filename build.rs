@@ -10,6 +10,4 @@ fn main() {
 }
 
 #[cfg(not(feature = "rtimu"))]
-fn main() {
-
-}
+fn main() {}
