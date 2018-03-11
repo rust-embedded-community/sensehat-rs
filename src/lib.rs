@@ -248,7 +248,7 @@ mod tests {
     #[test]
     pub fn pressure_test() {
         let p = Pressure::from_hectopascals(1000.0);
-        assert_eq!(p.as_bars(), 1.0);
-        assert_eq!(p.as_psi(), 14.5038);
+        assert!((p.as_bars() - 1.0).abs() < 1e-6);
+        assert!((p.as_psi() - 14.50376807894691).abs() < 1e-6);
     }
 }
