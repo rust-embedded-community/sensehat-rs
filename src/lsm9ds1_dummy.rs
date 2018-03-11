@@ -2,7 +2,7 @@
 //!
 //! This is just a placeholder so the the docs build without RTIMULib.
 
-use super::{Orientation, Angle};
+use super::{Angle, Orientation};
 use std::marker::PhantomData;
 
 enum RTIMULibContext {}
@@ -19,7 +19,9 @@ pub struct Lsm9ds1<'a> {
 impl<'a> Lsm9ds1<'a> {
     /// Uses the RTIMULib library.
     pub fn new() -> Result<Lsm9ds1<'a>, Error> {
-        Ok(Lsm9ds1 { phantom: PhantomData })
+        Ok(Lsm9ds1 {
+            phantom: PhantomData,
+        })
     }
 
     /// Make the IMU do some work. When this function returns true, the IMU

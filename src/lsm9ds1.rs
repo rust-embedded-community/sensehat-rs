@@ -9,7 +9,7 @@
 //! a C wrapper of the RTIMULib C++ API. We then call that unsafe C wrapper
 //! here, ensuring that any memory allocations were undone on drop.
 
-use super::{Orientation, Angle};
+use super::{Angle, Orientation};
 use libc;
 
 enum RTIMULibContext {}
@@ -37,7 +37,6 @@ struct COrientation {
     z: libc::c_double,
 }
 
-
 #[derive(Debug)]
 pub enum Error {
     RTIMULibError,
@@ -47,11 +46,9 @@ pub struct Lsm9ds1<'a> {
     rtimulib_ref: &'a mut RTIMULibContext,
 }
 
-
 impl<'a> Lsm9ds1<'a> {
     /// Uses the RTIMULib library.
     pub fn new() -> Result<Lsm9ds1<'a>, Error> {
-
         let ctx_ref = unsafe {
             let ctx_p = rtimulib_wrapper_create();
             if ctx_p.is_null() {
@@ -60,7 +57,9 @@ impl<'a> Lsm9ds1<'a> {
             &mut *ctx_p
         };
 
-        Ok(Lsm9ds1 { rtimulib_ref: ctx_ref })
+        Ok(Lsm9ds1 {
+            rtimulib_ref: ctx_ref,
+        })
     }
 
     /// Make the IMU do some work. When this function returns true, the IMU

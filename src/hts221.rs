@@ -99,11 +99,9 @@ where
     }
 
     pub fn get_relative_humidity_percent(&mut self) -> Result<f64, T::Error> {
-        self.get_relative_humidity().and_then(|c| {
-            Ok((c as f64 * self.hum_m) + self.hum_c)
-        })
+        self.get_relative_humidity()
+            .and_then(|c| Ok((c as f64 * self.hum_m) + self.hum_c))
     }
-
 
     pub fn get_temperature(&mut self) -> Result<i16, T::Error> {
         let mut buf = [0u8; 2];
@@ -113,8 +111,7 @@ where
     }
 
     pub fn get_temperature_celcius(&mut self) -> Result<f64, T::Error> {
-        self.get_temperature().and_then(|c| {
-            Ok((c as f64 * self.temp_m) + self.temp_c)
-        })
+        self.get_temperature()
+            .and_then(|c| Ok((c as f64 * self.temp_m) + self.temp_c))
     }
 }

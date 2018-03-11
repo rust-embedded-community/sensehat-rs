@@ -90,9 +90,7 @@ impl<'a> SenseHat<'a> {
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
-            Ok(Temperature::from_celsius(
-                self.pressure_chip.get_temp_celcius()?,
-            ))
+            Ok(Temperature::from_celsius(self.pressure_chip.get_temp_celcius()?))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -102,9 +100,7 @@ impl<'a> SenseHat<'a> {
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
-            Ok(Pressure::from_hectopascals(
-                self.pressure_chip.get_pressure_hpa()?,
-            ))
+            Ok(Pressure::from_hectopascals(self.pressure_chip.get_pressure_hpa()?))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -203,7 +199,9 @@ impl From<lsm9ds1::Error> for SenseHatError {
 
 impl Angle {
     pub fn from_radians(rad: f64) -> Angle {
-        Angle { value: radians_to_degrees(rad) }
+        Angle {
+            value: radians_to_degrees(rad),
+        }
     }
 
     pub fn as_radians(&self) -> f64 {
