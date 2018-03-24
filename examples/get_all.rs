@@ -3,7 +3,7 @@ extern crate sensehat;
 use sensehat::SenseHat;
 
 fn main() {
-    let mut sense_hat = SenseHat::new().expect("Couldn't create Sense Hat object");
+    let mut sense_hat = SenseHat::new().expect("Couldn't create Sense HAT object");
     let temp = sense_hat
         .get_temperature_from_humidity()
         .expect("Couldn't get temp");

@@ -5,8 +5,8 @@
 //! in how it manages the settings file.
 //!
 //! It turns out handling IMUs is really complicated and involves a ton of
-//! vector maths. We just wrap RTIMULib. We use the `gcc` crate to compile
-//! a C wrapper of the RTIMULib C++ API. We then call that unsafe C wrapper
+//! vector maths. We just wrap `RTIMULib`. We use the `gcc` crate to compile
+//! a C wrapper of the `RTIMULib` C++ API. We then call that unsafe C wrapper
 //! here, ensuring that any memory allocations were undone on drop.
 
 use super::{Angle, Orientation};
@@ -47,7 +47,7 @@ pub struct Lsm9ds1<'a> {
 }
 
 impl<'a> Lsm9ds1<'a> {
-    /// Uses the RTIMULib library.
+    /// Uses the `RTIMULib` library.
     pub fn new() -> Result<Lsm9ds1<'a>, Error> {
         let ctx_ref = unsafe {
             let ctx_p = rtimulib_wrapper_create();

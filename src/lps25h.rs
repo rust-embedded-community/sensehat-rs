@@ -1,5 +1,5 @@
 //! * Driver for the LPS25H Pressure sensor
-//! See http://www.st.com/en/mems-and-sensors/lps25h.html
+//! See <http://www.st.com/en/mems-and-sensors/lps25h.html>
 
 use i2cdev::core::I2CDevice;
 use byteorder::{ByteOrder, LittleEndian};
@@ -31,7 +31,7 @@ where
         i2cdev.smbus_write_byte_data(REG_FIFO_CTRL, 0xc0)?;
         i2cdev.smbus_write_byte_data(REG_CTRL_REG_2, 0x40)?;
 
-        Ok(Lps25h { i2cdev: i2cdev })
+        Ok(Lps25h { i2cdev })
     }
 
     /// Obtain the status bitfield from the chip.
@@ -50,7 +50,7 @@ where
 
     /// Obtain the temperature reading from the chip in deg C.
     pub fn get_temp_celcius(&mut self) -> Result<f64, T::Error> {
-        self.get_temp().and_then(|c| Ok((c as f64 / 480.0) + 42.5))
+        self.get_temp().and_then(|c| Ok((f64::from(c) / 480.0) + 42.5))
     }
 
     /// Obtain the pressure reading from the chip.
@@ -65,6 +65,6 @@ where
 
     /// Obtain the pressure reading from the chip in hPa.
     pub fn get_pressure_hpa(&mut self) -> Result<f64, T::Error> {
-        self.get_pressure().and_then(|c| Ok(c as f64 / 4096.0))
+        self.get_pressure().and_then(|c| Ok(f64::from(c) / 4096.0))
     }
 }

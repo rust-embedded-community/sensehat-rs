@@ -45,32 +45,32 @@ where
         let mut buf = [0u8; 2];
         buf[0] = i2cdev.smbus_read_byte_data(REG_T0_C_8)?;
         buf[1] = i2cdev.smbus_read_byte_data(REG_T1_T0)? & 0x03;
-        let t0 = (LittleEndian::read_i16(&buf) as f64) / 8.0;
+        let t0 = f64::from(LittleEndian::read_i16(&buf)) / 8.0;
         buf[0] = i2cdev.smbus_read_byte_data(REG_T1_C_8)?;
         buf[1] = (i2cdev.smbus_read_byte_data(REG_T1_T0)? & 0x0C) >> 2;
-        let t1 = (LittleEndian::read_i16(&buf) as f64) / 8.0;
+        let t1 = f64::from(LittleEndian::read_i16(&buf)) / 8.0;
 
         buf[0] = i2cdev.smbus_read_byte_data(REG_T0_OUT)?;
         buf[1] = i2cdev.smbus_read_byte_data(REG_T0_OUT + 1)?;
-        let t0_out = LittleEndian::read_i16(&buf) as f64;
+        let t0_out = f64::from(LittleEndian::read_i16(&buf));
 
         buf[0] = i2cdev.smbus_read_byte_data(REG_T1_OUT)?;
         buf[1] = i2cdev.smbus_read_byte_data(REG_T1_OUT + 1)?;
-        let t1_out = LittleEndian::read_i16(&buf) as f64;
+        let t1_out = f64::from(LittleEndian::read_i16(&buf));
 
         buf[0] = i2cdev.smbus_read_byte_data(REG_H0_H_2)?;
-        let h0 = (buf[0] as f64) / 2.0;
+        let h0 = f64::from(buf[0]) / 2.0;
 
         buf[0] = i2cdev.smbus_read_byte_data(REG_H1_H_2)?;
-        let h1 = (buf[0] as f64) / 2.0;
+        let h1 = f64::from(buf[0]) / 2.0;
 
         buf[0] = i2cdev.smbus_read_byte_data(REG_H0_T0_OUT)?;
         buf[1] = i2cdev.smbus_read_byte_data(REG_H0_T0_OUT + 1)?;
-        let h0_t0_out = LittleEndian::read_i16(&buf) as f64;
+        let h0_t0_out = f64::from(LittleEndian::read_i16(&buf));
 
         buf[0] = i2cdev.smbus_read_byte_data(REG_H1_T0_OUT)?;
         buf[1] = i2cdev.smbus_read_byte_data(REG_H1_T0_OUT + 1)?;
-        let h1_t0_out = LittleEndian::read_i16(&buf) as f64;
+        let h1_t0_out = f64::from(LittleEndian::read_i16(&buf));
 
         let temp_m = (t1 - t0) / (t1_out - t0_out);
         let temp_c = t0 - (temp_m * t0_out);
@@ -78,11 +78,11 @@ where
         let hum_c = h0 - (hum_m * h0_t0_out);
 
         Ok(Hts221 {
-            i2cdev: i2cdev,
-            temp_m: temp_m,
-            temp_c: temp_c,
-            hum_m: hum_m,
-            hum_c: hum_c,
+            i2cdev,
+            temp_m,
+            temp_c,
+            hum_m,
+            hum_c,
         })
     }
 
@@ -100,7 +100,7 @@ where
 
     pub fn get_relative_humidity_percent(&mut self) -> Result<f64, T::Error> {
         self.get_relative_humidity()
-            .and_then(|c| Ok((c as f64 * self.hum_m) + self.hum_c))
+            .and_then(|c| Ok((f64::from(c) * self.hum_m) + self.hum_c))
     }
 
     pub fn get_temperature(&mut self) -> Result<i16, T::Error> {
@@ -112,6 +112,6 @@ where
 
     pub fn get_temperature_celcius(&mut self) -> Result<f64, T::Error> {
         self.get_temperature()
-            .and_then(|c| Ok((c as f64 * self.temp_m) + self.temp_c))
+            .and_then(|c| Ok((f64::from(c) * self.temp_m) + self.temp_c))
     }
 }

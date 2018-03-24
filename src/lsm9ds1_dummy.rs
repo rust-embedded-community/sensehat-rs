@@ -17,7 +17,7 @@ pub struct Lsm9ds1<'a> {
 }
 
 impl<'a> Lsm9ds1<'a> {
-    /// Uses the RTIMULib library.
+    /// Uses the `RTIMULib` library.
     pub fn new() -> Result<Lsm9ds1<'a>, Error> {
         Ok(Lsm9ds1 {
             phantom: PhantomData,

@@ -1,3 +1,20 @@
+//! # A driver for the Raspberry Pi Sense HAT
+//!
+//! The [Sense HAT](https://www.raspberrypi.org/products/sense-hat/) is a
+//! sensor board for the Raspberry Pi. It features an LED matrix, a humidity
+//! and temperature sensor, a pressure and temperature sensor and a gyroscope.
+//!
+//! Supported components:
+//!
+//! * Humidity and Temperature Sensor (an HTS221)
+//! * Pressure and Temperature Sensor (a LPS25H)
+//! * Gyroscope (an LSM9DS1, requires the RTIMU library)
+//!
+//! Currently unsupported components:
+//!
+//! * LED matrix
+//! * Joystick
+
 extern crate byteorder;
 extern crate i2cdev;
 extern crate measurements;
@@ -5,15 +22,16 @@ extern crate measurements;
 #[cfg(feature = "rtimu")]
 extern crate libc;
 
-pub use measurements::Temperature;
-pub use measurements::Pressure;
-
-use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
-
-use std::fmt;
-
+mod rh;
 mod hts221;
 mod lps25h;
+
+pub use measurements::Temperature;
+pub use measurements::Pressure;
+pub use measurements::Angle;
+pub use rh::RelativeHumidity;
+
+use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
 
 #[cfg(feature = "rtimu")]
 mod lsm9ds1;
@@ -23,18 +41,6 @@ mod lsm9ds1_dummy;
 #[cfg(not(feature = "rtimu"))]
 use lsm9ds1_dummy as lsm9ds1;
 
-/// An angle between two lines
-#[derive(Debug, Copy, Clone)]
-pub struct Angle {
-    value: f64,
-}
-
-/// Represents a relative humidity reading from the humidity sensor
-#[derive(Debug, Copy, Clone)]
-pub struct RelativeHumidity {
-    value: f64,
-}
-
 /// Represents an orientation from the IMU
 #[derive(Debug, Copy, Clone)]
 pub struct Orientation {
@@ -43,7 +49,7 @@ pub struct Orientation {
     pub yaw: Angle,
 }
 
-/// Represents the Sense Hat itself
+/// Represents the Sense HAT itself
 pub struct SenseHat<'a> {
     /// LPS25H pressure sensor
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,
@@ -71,7 +77,7 @@ impl<'a> SenseHat<'a> {
     /// Try and create a new SenseHat object.
     ///
     /// Will open the relevant I2C devices and then attempt to initialise the
-    /// chips on the Sense Hat.
+    /// chips on the Sense HAT.
     pub fn new() -> SenseHatResult<SenseHat<'a>> {
         Ok(SenseHat {
             humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
@@ -90,7 +96,8 @@ impl<'a> SenseHat<'a> {
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
-            Ok(Temperature::from_celsius(self.pressure_chip.get_temp_celcius()?))
+            Ok(Temperature::from_celsius(self.pressure_chip
+                .get_temp_celcius()?))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -100,7 +107,8 @@ impl<'a> SenseHat<'a> {
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
-            Ok(Pressure::from_hectopascals(self.pressure_chip.get_pressure_hpa()?))
+            Ok(Pressure::from_hectopascals(self.pressure_chip
+                .get_pressure_hpa()?))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -177,14 +185,6 @@ impl<'a> SenseHat<'a> {
     }
 }
 
-fn radians_to_degrees(radians: f64) -> f64 {
-    360.0 * (radians / (::std::f64::consts::PI * 2.0))
-}
-
-fn degrees_to_radians(degrees: f64) -> f64 {
-    (degrees * (::std::f64::consts::PI * 2.0)) / 360.0
-}
-
 impl From<LinuxI2CError> for SenseHatError {
     fn from(err: LinuxI2CError) -> SenseHatError {
         SenseHatError::I2CError(err)
@@ -197,56 +197,4 @@ impl From<lsm9ds1::Error> for SenseHatError {
     }
 }
 
-impl Angle {
-    pub fn from_radians(rad: f64) -> Angle {
-        Angle {
-            value: radians_to_degrees(rad),
-        }
-    }
-
-    pub fn as_radians(&self) -> f64 {
-        degrees_to_radians(self.value)
-    }
-
-    pub fn from_degrees(deg: f64) -> Angle {
-        Angle { value: deg }
-    }
-
-    pub fn as_degrees(&self) -> f64 {
-        self.value
-    }
-}
-
-impl RelativeHumidity {
-    pub fn from_percent(pc: f64) -> RelativeHumidity {
-        RelativeHumidity { value: pc }
-    }
-
-    pub fn as_percent(&self) -> f64 {
-        self.value
-    }
-}
-
-impl fmt::Display for RelativeHumidity {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:.1}%", self.as_percent())
-    }
-}
-
-impl fmt::Display for Angle {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:.1}°", self.as_degrees())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    pub fn pressure_test() {
-        let p = Pressure::from_hectopascals(1000.0);
-        assert!((p.as_bars() - 1.0).abs() < 1e-6);
-        assert!((p.as_psi() - 14.50376807894691).abs() < 1e-6);
-    }
-}
+// End of file
