@@ -14,6 +14,7 @@ measurements = "0.10.2"
 i2cdev = "0.4.0"
 byteorder = "1.0"
 libc = { version = "0.2", optional = true }
+sensehat-screen = { version = "0.1", optional = true }
 
 [build-dependencies]
 gcc = "0.3"
@@ -23,6 +24,7 @@ gcc = "0.3"
 # packages, but they are strictly optional.
 default = ["rtimu"]
 rtimu = [ "libc" ]
+led-matrix = ["sensehat-screen"]
 
 [package.metadata.docs.rs]
 features = [ ]

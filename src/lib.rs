@@ -22,6 +22,9 @@ extern crate measurements;
 #[cfg(feature = "rtimu")]
 extern crate libc;
 
+#[cfg(feature = "led-matrix")]
+extern crate sensehat_screen;
+
 mod rh;
 mod hts221;
 mod lps25h;
