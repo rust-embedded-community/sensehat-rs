@@ -1,105 +1,100 @@
 extern crate sensehat;
-#[cfg(feature = "led-matrix")]
-extern crate sensehat_screen;
 
-use sensehat::SenseHat;
-#[cfg(feature = "led-matrix")]
-use sensehat_screen::{FrameLine, PixelColor, Screen};
+use sensehat::{SenseHat, FrameLine, PixelColor, Screen};
 
-#[cfg(feature = "led-matrix")]
 fn main() {
     let mut sense_hat = SenseHat::new().expect("Couldn't create Sense HAT object");
     let mut screen = Screen::open("/dev/fb1").expect("Couldn't find Sense HAT LED matrix");
 
-    //let dark_px = PixelColor::new(0, 0, 0);
-    let blue_px = PixelColor::new(0, 0, 255);
-    let grey_px = PixelColor::new(0, 0, 0);
-    let red_px = PixelColor::new(255, 0, 0);
+    let blue_px = PixelColor::BLUE;
+    let red_px = PixelColor::RED;
+    let black_px = PixelColor::BLACK;
+
     let background_pixels = vec![ 
-        &blue_px, &blue_px, &grey_px, &grey_px, &grey_px, &grey_px, &blue_px, &blue_px,
-        &blue_px, &grey_px, &blue_px, &blue_px, &blue_px, &blue_px, &grey_px, &blue_px,
-        &grey_px, &blue_px, &blue_px, &blue_px, &blue_px, &blue_px, &blue_px, &grey_px,
-        &grey_px, &blue_px, &blue_px, &blue_px, &blue_px, &blue_px, &blue_px, &grey_px,
-        &grey_px, &blue_px, &blue_px, &blue_px, &blue_px, &blue_px, &blue_px, &grey_px,
-        &grey_px, &blue_px, &blue_px, &blue_px, &blue_px, &blue_px, &blue_px, &grey_px,
-        &blue_px, &grey_px, &blue_px, &blue_px, &blue_px, &blue_px, &grey_px, &blue_px,
-        &blue_px, &blue_px, &grey_px, &grey_px, &grey_px, &grey_px, &blue_px, &blue_px,
+        blue_px, blue_px, black_px, black_px, black_px, black_px, blue_px, blue_px,
+        blue_px, black_px, blue_px, blue_px, blue_px, blue_px, black_px, blue_px,
+        black_px, blue_px, blue_px, blue_px, blue_px, blue_px, blue_px, black_px,
+        black_px, blue_px, blue_px, blue_px, blue_px, blue_px, blue_px, black_px,
+        black_px, blue_px, blue_px, blue_px, blue_px, blue_px, blue_px, black_px,
+        black_px, blue_px, blue_px, blue_px, blue_px, blue_px, blue_px, black_px,
+        blue_px, black_px, blue_px, blue_px, blue_px, blue_px, black_px, blue_px,
+        blue_px, blue_px, black_px, black_px, black_px, black_px, blue_px, blue_px,
     ];
 
     let right = {
         let mut pxs = background_pixels.clone();
-        pxs[31] = &red_px;
-        pxs[39] = &red_px;
+        pxs[31] = red_px;
+        pxs[39] = red_px;
         pxs
     };
     let right_up = {
         let mut pxs = background_pixels.clone();
-        pxs[14] = &red_px;
-        pxs[23] = &red_px;
+        pxs[14] = red_px;
+        pxs[23] = red_px;
         pxs
     };
     let right_down = {
         let mut pxs = background_pixels.clone();
-        pxs[47] = &red_px;
-        pxs[54] = &red_px;
+        pxs[47] = red_px;
+        pxs[54] = red_px;
         pxs
     };
 
     let up = {
         let mut pxs = background_pixels.clone();
-        pxs[3] = &red_px;
-        pxs[4] = &red_px;
+        pxs[3] = red_px;
+        pxs[4] = red_px;
         pxs
     };
 
     let up_left = {
         let mut pxs = background_pixels.clone();
-        pxs[2] = &red_px;
-        pxs[9] = &red_px;
+        pxs[2] = red_px;
+        pxs[9] = red_px;
         pxs
     };
     let up_right = {
         let mut pxs = background_pixels.clone();
-        pxs[5] = &red_px;
-        pxs[14] = &red_px;
+        pxs[5] = red_px;
+        pxs[14] = red_px;
         pxs
     };
 
     let left = {
         let mut pxs = background_pixels.clone();
-        pxs[24] = &red_px;
-        pxs[32] = &red_px;
+        pxs[24] = red_px;
+        pxs[32] = red_px;
         pxs
     };
     let left_up = {
         let mut pxs = background_pixels.clone();
-        pxs[9] = &red_px;
-        pxs[16] = &red_px;
+        pxs[9] = red_px;
+        pxs[16] = red_px;
         pxs
     };
     let left_down = {
         let mut pxs = background_pixels.clone();
-        pxs[40] = &red_px;
-        pxs[49] = &red_px;
+        pxs[40] = red_px;
+        pxs[49] = red_px;
         pxs
     };
 
     let down = {
         let mut pxs = background_pixels.clone();
-        pxs[59] = &red_px;
-        pxs[60] = &red_px;
+        pxs[59] = red_px;
+        pxs[60] = red_px;
         pxs
     };
     let down_left = {
         let mut pxs = background_pixels.clone();
-        pxs[49] = &red_px;
-        pxs[58] = &red_px;
+        pxs[49] = red_px;
+        pxs[58] = red_px;
         pxs
     };
     let down_right = {
         let mut pxs = background_pixels.clone();
-        pxs[54] = &red_px;
-        pxs[61] = &red_px;
+        pxs[54] = red_px;
+        pxs[61] = red_px;
         pxs
     };
     let bg_frame = FrameLine::from_pixels(&background_pixels);
@@ -167,12 +162,4 @@ fn main() {
             }
         }
     }
-}
-
-#[cfg(not(feature = "led-matrix"))]
-fn main() {
-    println!("the 'led-matrix' feature is required to run this example.");
-    println!("To run with the 'led-matrix' feature, try:");
-    println!();
-    println!("  cargo run --features=\"led-matrix\" --example compass_screen")
 }
