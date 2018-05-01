@@ -103,7 +103,7 @@ pub enum SenseHatError {
     PositionOutOfBounds,
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
-    FramebufferError(sensehat_screen::FramebufferError)
+    FramebufferError(sensehat_screen::framebuffer::FramebufferError)
 }
 
 /// An image on the LED matrix
@@ -363,8 +363,8 @@ impl From<lsm9ds1::Error> for SenseHatError {
     }
 }
 
-impl From<sensehat_screen::FramebufferError> for SenseHatError {
-    fn from(err: sensehat_screen::FramebufferError) -> SenseHatError {
+impl From<sensehat_screen::framebuffer::FramebufferError> for SenseHatError {
+    fn from(err: sensehat_screen::framebuffer::FramebufferError) -> SenseHatError {
         SenseHatError::FramebufferError(err)
     }
 }
