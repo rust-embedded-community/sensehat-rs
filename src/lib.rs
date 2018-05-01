@@ -108,7 +108,7 @@ pub enum SenseHatError {
 
 /// An image on the LED matrix
 #[derive(Clone)]
-pub struct Image([PixelColor; LED_NUM_PIXELS]);
+pub struct Image(PixelFrame);
 
 /// A shortcut for Results that can return `T` or `SenseHatError`
 pub type SenseHatResult<T> = Result<T, SenseHatError>;
@@ -128,7 +128,6 @@ impl<'a> SenseHat<'a> {
     /// Will open the relevant I2C devices and then attempt to initialise the
     /// chips on the Sense HAT.
     pub fn new() -> SenseHatResult<SenseHat<'a>> {
-        let blue_pixel = PixelColor::new(0, 0, 255);
         Ok(SenseHat {
             humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
             pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
@@ -139,7 +138,7 @@ impl<'a> SenseHat<'a> {
                 yaw: Angle::from_degrees(0.0),
             },
             rotation: Rotation::Normal,
-            image: Image([blue_pixel; LED_NUM_PIXELS]),
+            image: Image(PixelFrame::BLUE),
             screen: Screen::open("/dev/fb1")?
         })
     }
@@ -301,9 +300,7 @@ impl<'a> SenseHat<'a> {
 
     /// Clear the display
     pub fn clear(&mut self, color: PixelColor, redraw: DrawMode) -> SenseHatResult<()> {
-        for pixel in self.image.0.iter_mut() {
-            *pixel = color;
-        }
+        self.image = Image(PixelFrame::new(&[color; LED_NUM_PIXELS]));
         match redraw {
             DrawMode::OutputNow => self.redraw(),
             _ => {}
@@ -313,7 +310,7 @@ impl<'a> SenseHat<'a> {
 
     pub fn redraw(&mut self) {
         let image = self.image.rotate_copy(self.rotation);
-        let frame = FrameLine::from_pixels(&image.0);
+        let frame = image.0.frame_line();
         self.screen.write_frame(&frame);
     }
 }
@@ -333,13 +330,13 @@ impl Image {
         match rotation {
             Rotation::Normal => {},
             Rotation::Clockwise90 => {
-                unimplemented!()
+                self.0.rotate(Rotate::Ccw270);
             }
             Rotation::Clockwise180 => {
-                unimplemented!()
+                self.0.rotate(Rotate::Ccw180);
             }
             Rotation::Clockwise270 => {
-                unimplemented!()
+                self.0.rotate(Rotate::Ccw90);
             }
         }
     }
