@@ -33,7 +33,7 @@ pub use measurements::Pressure;
 pub use measurements::Angle;
 pub use rh::RelativeHumidity;
 
-pub use sensehat_screen::{FrameLine, PixelColor, Screen};
+pub use sensehat_screen::{FrameLine, PixelFrame, PixelColor, Rotate, Screen};
 
 use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
 
@@ -300,7 +300,7 @@ impl<'a> SenseHat<'a> {
 
     /// Clear the display
     pub fn clear(&mut self, color: PixelColor, redraw: DrawMode) -> SenseHatResult<()> {
-        self.image = Image(PixelFrame::new(&[color; LED_NUM_PIXELS]));
+        self.image = Image([color; LED_NUM_PIXELS].into());
         match redraw {
             DrawMode::OutputNow => self.redraw(),
             _ => {}
