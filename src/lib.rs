@@ -366,4 +366,9 @@ impl From<sensehat_screen::framebuffer::FramebufferError> for SenseHatError {
     }
 }
 
+impl From<[PixelColor; LED_NUM_PIXELS]> for Image {
+    fn from(array: [PixelColor; 64]) -> Self {
+        Image(array.into())
+    }
+}
 // End of file
