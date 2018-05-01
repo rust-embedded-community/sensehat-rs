@@ -107,7 +107,7 @@ pub enum SenseHatError {
 }
 
 /// An image on the LED matrix
-#[derive(Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Image(PixelFrame);
 
 /// A shortcut for Results that can return `T` or `SenseHatError`
