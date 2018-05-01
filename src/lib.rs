@@ -341,8 +341,8 @@ impl Image {
         }
     }
 
-    fn rotate_copy(&self, rotation: Rotation) -> Image {
-        let mut im = self.clone();
+    pub fn rotate_copy(&self, rotation: Rotation) -> Image {
+        let mut im = *self;
         im.rotate_mut(rotation);
         im
     }
