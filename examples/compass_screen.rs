@@ -1,6 +1,8 @@
 extern crate sensehat;
+extern crate sensehat_screen;
 
 use sensehat::{SenseHat, FrameLine, PixelColor, Screen};
+use sensehat_screen::PixelFrame;
 
 const DARK: PixelColor = PixelColor::BLACK;
 const BLUE: PixelColor = PixelColor::BLUE;
@@ -11,140 +13,100 @@ fn main() {
     let mut screen = Screen::open("/dev/fb1").expect("Couldn't find Sense HAT LED matrix");
 
     let background_pixels = vec![ 
-        BLUE, BLUE, DARK, DARK, DARK, DARK, BLUE, BLUE, //
-        BLUE, DARK, BLUE, BLUE, BLUE, BLUE, DARK, BLUE, //
-        DARK, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, DARK, //
-        DARK, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, DARK, //
-        DARK, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, DARK, //
-        DARK, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, DARK, //
-        BLUE, DARK, BLUE, BLUE, BLUE, BLUE, DARK, BLUE, //
-        BLUE, BLUE, DARK, DARK, DARK, DARK, BLUE, BLUE, //
+        BLUE, BLUE, DARK, DARK, DARK, DARK, BLUE, BLUE, // 0-7
+        BLUE, DARK, BLUE, BLUE, BLUE, BLUE, DARK, BLUE, // 8-15
+        DARK, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, DARK, // 16-23
+        DARK, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, DARK, // 24-31
+        DARK, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, DARK, // 32-39
+        DARK, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, DARK, // 40-47
+        BLUE, DARK, BLUE, BLUE, BLUE, BLUE, DARK, BLUE, // 48-55
+        BLUE, BLUE, DARK, DARK, DARK, DARK, BLUE, BLUE, // 56-63
     ];
 
-    let background = FrameLine::from_pixels(&background_pixels);
+    let background = PixelFrame::new(&background_pixels);
 
     let right = {
         let mut pxs = background_pixels.clone();
+        pxs[23] = RED.dim(0.5);
+        pxs[47] = RED;
         pxs[31] = RED;
-        pxs[39] = RED;
-        FrameLine::from_pixels(&pxs)
+        pxs[39] = RED;.dim(0.5)
+        PixelFrame::new(&pxs)
     };
     let right_up = {
         let mut pxs = background_pixels.clone();
+        pxs[5] = RED.dim(0.5);
         pxs[14] = RED;
         pxs[23] = RED;
-        FrameLine::from_pixels(&pxs)
+        pxs[31] = RED.dim(0.5);
+        PixelFrame::new(&pxs)
     };
     let right_down = {
         let mut pxs = background_pixels.clone();
+        pxs[39] = RED.dim(0.5);
         pxs[47] = RED;
         pxs[54] = RED;
-        FrameLine::from_pixels(&pxs)
+        pxs[61] = RED.dim(0.5);
+        PixelFrame::new(&pxs)
     };
 
-    let up = {
-        let mut pxs = background_pixels.clone();
-        pxs[3] = RED;
-        pxs[4] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
+    let up = right.rotate_left();
+    let up_left = right_up.rotate_left();
+    let up_right = right_down.rotate_left();
 
-    let up_left = {
-        let mut pxs = background_pixels.clone();
-        pxs[2] = RED;
-        pxs[9] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
-    let up_right = {
-        let mut pxs = background_pixels.clone();
-        pxs[5] = RED;
-        pxs[14] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
+    let left = right.rotate_180();
+    let left_up = right_down.rotate_180();
+    let left_down = right_up.rotate_180();
 
-    let left = {
-        let mut pxs = background_pixels.clone();
-        pxs[24] = RED;
-        pxs[32] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
-    let left_up = {
-        let mut pxs = background_pixels.clone();
-        pxs[9] = RED;
-        pxs[16] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
-    let left_down = {
-        let mut pxs = background_pixels.clone();
-        pxs[40] = RED;
-        pxs[49] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
+    let down = up.rotate_180();
+    let down_left = up_right.rotate_180();
+    let down_right = up_left.rotate_180();
 
-    let down = {
-        let mut pxs = background_pixels.clone();
-        pxs[59] = RED;
-        pxs[60] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
-    let down_left = {
-        let mut pxs = background_pixels.clone();
-        pxs[49] = RED;
-        pxs[58] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
-    let down_right = {
-        let mut pxs = background_pixels.clone();
-        pxs[54] = RED;
-        pxs[61] = RED;
-        FrameLine::from_pixels(&pxs)
-    };
-
-    screen.write_frame(&background);
+    screen.write_frame(&background.frame_line());
 
     loop {
         if let Ok(needle) = sense_hat.get_compass() {
             // println!("Compass needle @{}", needle.as_degrees());
             match needle.as_degrees() {
                 angle if angle > -15.0 && angle <= 15.0 => {
-                    screen.write_frame(&right);
+                    screen.write_frame(&right.frame_line());
                 }
                 angle if angle > 15.0 && angle <= 45.0 => {
-                    screen.write_frame(&right_up);
+                    screen.write_frame(&right_up.frame_line());
                 }
                 angle if angle > 45.0 && angle <= 75.0 => {
-                    screen.write_frame(&up_right);
+                    screen.write_frame(&up_right.frame_line());
                 }
                 angle if angle > 75.0 && angle <= 105.0 => {
-                    screen.write_frame(&up);
+                    screen.write_frame(&up.frame_line());
                 }
                 angle if angle > 105.0 && angle <= 135.0 => {
-                    screen.write_frame(&up_left);
+                    screen.write_frame(&up_left.frame_line());
                 }
                 angle if angle > 135.0 && angle <= 165.0 => {
-                    screen.write_frame(&left_up);
+                    screen.write_frame(&left_up.frame_line());
                 }
                 angle
                     if (angle > 165.0 && angle <= 180.0) || (angle < -165.0 && angle >= -180.0) =>
                 {
-                    screen.write_frame(&left);
+                    screen.write_frame(&left.frame_line());
                 }
                 angle if angle < -15.0 && angle >= -45.0 => {
-                    screen.write_frame(&right_down);
+                    screen.write_frame(&right_down.frame_line());
                 }
                 angle if angle < -45.0 && angle >= -75.0 => {
-                    screen.write_frame(&down_right);
+                    screen.write_frame(&down_right.frame_line());
                 }
                 angle if angle < -75.0 && angle >= -105.0 => {
-                    screen.write_frame(&down);
+                    screen.write_frame(&down.frame_line());
                 }
                 angle if angle < -105.0 && angle >= -135.0 => {
-                    screen.write_frame(&down_left);
+                    screen.write_frame(&down_left.frame_line());
                 }
                 angle if angle < -135.0 && angle >= -165.0 => {
-                    screen.write_frame(&left_down);
+                    screen.write_frame(&left_down.frame_line());
                 }
-                _ => screen.write_frame(&background),
+                _ => screen.write_frame(&background.frame_line()),
             }
         }
     }
