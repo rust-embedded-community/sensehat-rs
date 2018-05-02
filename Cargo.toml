@@ -13,7 +13,7 @@ readme = "README.md"
 measurements = "0.10.2"
 i2cdev = "0.4.0"
 byteorder = "1.0"
-sensehat-screen = "0.1.4"
+sensehat-screen = "0.1.9"
 # sensehat-screen = { path = "../sensehat-screen-rs" }
 libc = { version = "0.2", optional = true }
 
