@@ -50,10 +50,16 @@ pub const LED_WIDTH: u8 = 8;
 pub const LED_NUM_PIXELS: usize = LED_HEIGHT as usize * LED_WIDTH as usize;
 
 /// Represents a specific pixel position on the LED
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PixelPosition {
     x: u8,
     y: u8
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Translation {
+    Clip,
+    Wrap
 }
 
 /// How to rotate the image on the LED display
@@ -266,25 +272,17 @@ impl<'a> SenseHat<'a> {
 
     /// Set the colour of a single pixel.
     pub fn set_pixel(&mut self, position: PixelPosition, color: PixelColor, redraw: DrawMode) -> SenseHatResult<()> {
-        if position.valid() {
-            self.image.0[position.pixel()] = color;
-            match redraw {
-                DrawMode::OutputNow => self.redraw(),
-                _ => {}
-            }
-            Ok(())
-        } else {
-            Err(SenseHatError::PositionOutOfBounds)
+        self.image.0[position.pixel()] = color;
+        match redraw {
+            DrawMode::OutputNow => self.redraw(),
+            _ => {}
         }
+        Ok(())
     }
 
     /// Get the colour of a single pixel.
     pub fn get_pixel(&mut self, position: PixelPosition) -> SenseHatResult<PixelColor> {
-        if position.valid() {
-            Ok(self.image.0[position.pixel()])
-        } else {
-            Err(SenseHatError::PositionOutOfBounds)
-        }
+        Ok(self.image.0[position.pixel()])
     }
 
     /// Scroll a message across the screen. Blocks until completion.
@@ -319,11 +317,83 @@ impl<'a> SenseHat<'a> {
 }
 
 impl PixelPosition {
-    fn valid(&self) -> bool {
-        (self.x < LED_WIDTH) && (self.y < LED_HEIGHT)
+    pub fn new(x: u8, y: u8) -> Result<PixelPosition, String> {
+        if x >= LED_WIDTH {
+            Err(format!("X value {} is larger than maximum {}", x, LED_WIDTH))
+        } else if y >= LED_HEIGHT {
+            Err(format!("Y value {} is larger than maximum {}", y, LED_HEIGHT))
+        } else {
+            Ok(PixelPosition {
+                x, y
+            })
+        }
     }
 
-    fn pixel(&self) -> usize {
+    pub fn up(mut self, distance: u8, mode: Translation) -> Self {
+        match mode {
+            Translation::Clip => {
+                if u16::from(self.y) + u16::from(distance) >= u16::from(LED_HEIGHT) {
+                    self.y = LED_HEIGHT - 1;
+                } else {
+                    self.y += distance;
+                }
+            }
+            Translation::Wrap => {
+                self.y = (self.y + distance) % LED_HEIGHT;
+            }
+        }
+        self
+    }
+
+    pub fn down(mut self, distance: u8, mode: Translation) -> Self {
+        match mode {
+            Translation::Clip => {
+                if i16::from(self.y) - i16::from(distance) < 0 {
+                    self.y = 0;
+                } else {
+                    self.y -= distance;
+                }
+            }
+            Translation::Wrap => {
+                self.y = ((i16::from(self.y) - i16::from(distance)) % i16::from(LED_HEIGHT)) as u8;
+            }
+        }
+        self
+    }
+
+    pub fn right(mut self, distance: u8, mode: Translation) -> Self {
+        match mode {
+            Translation::Clip => {
+                if u16::from(self.x) + u16::from(distance) >= u16::from(LED_WIDTH) {
+                    self.x = LED_WIDTH - 1;
+                } else {
+                    self.x += distance;
+                }
+            }
+            Translation::Wrap => {
+                self.x = (self.x + distance) % LED_WIDTH;
+            }
+        }
+        self
+    }
+
+    pub fn left(mut self, distance: u8, mode: Translation) -> Self {
+        match mode {
+            Translation::Clip => {
+                if i16::from(self.x) - i16::from(distance) < 0 {
+                    self.x = 0;
+                } else {
+                    self.x -= distance;
+                }
+            }
+            Translation::Wrap => {
+                self.x = ((i16::from(self.x) - i16::from(distance)) % i16::from(LED_WIDTH)) as u8;
+            }
+        }
+        self
+    }
+
+    pub fn pixel(&self) -> usize {
         usize::from(self.x) + (usize::from(self.y) * usize::from(LED_HEIGHT))
     }
 }
@@ -366,6 +436,78 @@ impl From<lsm9ds1::Error> for SenseHatError {
 impl From<sensehat_screen::FramebufferError> for SenseHatError {
     fn from(err: sensehat_screen::FramebufferError) -> SenseHatError {
         SenseHatError::FramebufferError(err)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn make_bad_position_y() {
+        assert!(PixelPosition::new(0, 8).is_err());
+    }
+    #[test]
+    fn make_bad_position_x() {
+        assert!(PixelPosition::new(8, 0).is_err());
+    }
+    #[test]
+    fn make_bad_position_xy() {
+        assert!(PixelPosition::new(8, 8).is_err());
+        assert!(PixelPosition::new(100, 100).is_err());
+    }
+    #[test]
+    fn move_right() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        assert_eq!(PixelPosition::new(1, 0).unwrap(), p0.right(1, Translation::Wrap));
+    }
+    #[test]
+    fn move_up() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        assert_eq!(PixelPosition::new(0, 1).unwrap(), p0.up(1, Translation::Wrap));
+    }
+    #[test]
+    fn move_up_right() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        assert_eq!(PixelPosition::new(1, 1).unwrap(), p0.up(1, Translation::Wrap).right(1, Translation::Wrap));
+    }
+    #[test]
+    fn move_up_wrap() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        assert_eq!(p0, p0.up(8, Translation::Wrap));
+    }
+    #[test]
+    fn move_right_wrap() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        assert_eq!(p0, p0.right(8, Translation::Wrap));
+    }
+    #[test]
+    fn move_left_wrap() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        assert_eq!(p0, p0.left(8, Translation::Wrap));
+    }
+    #[test]
+    fn move_down_wrap() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        assert_eq!(p0, p0.down(8, Translation::Wrap));
+    }
+    #[test]
+    fn move_up_clip() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        let p2 = PixelPosition::new(0, 7).unwrap();
+        assert_eq!(p2, p0.up(100, Translation::Clip));
+    }
+    #[test]
+    fn move_right_clip() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        let p3 = PixelPosition::new(7, 0).unwrap();
+        assert_eq!(p3, p0.right(100, Translation::Clip));
+    }
+    #[test]
+    fn move_up_right_clip() {
+        let p0 = PixelPosition::new(0, 0).unwrap();
+        let p1 = PixelPosition::new(7, 7).unwrap();
+        assert_eq!(p1, p0.right(100, Translation::Clip).up(100, Translation::Clip));
     }
 }
 
