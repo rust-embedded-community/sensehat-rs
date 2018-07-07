@@ -2,10 +2,8 @@
 //!
 //! This is just a placeholder so the the docs build without RTIMULib.
 
-use super::{Angle, Orientation};
+use super::Orientation;
 use std::marker::PhantomData;
-
-enum RTIMULibContext {}
 
 #[derive(Debug)]
 pub enum Error {

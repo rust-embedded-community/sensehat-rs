@@ -24,13 +24,13 @@ extern crate libc;
 
 extern crate sensehat_screen;
 
-mod rh;
 mod hts221;
 mod lps25h;
+mod rh;
 
-pub use measurements::Temperature;
-pub use measurements::Pressure;
 pub use measurements::Angle;
+pub use measurements::Pressure;
+pub use measurements::Temperature;
 pub use rh::RelativeHumidity;
 
 pub use sensehat_screen::{FrameLine, PixelColor, Screen};
@@ -53,13 +53,13 @@ pub const LED_NUM_PIXELS: usize = LED_HEIGHT as usize * LED_WIDTH as usize;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PixelPosition {
     x: u8,
-    y: u8
+    y: u8,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum Translation {
     Clip,
-    Wrap
+    Wrap,
 }
 
 /// How to rotate the image on the LED display
@@ -72,7 +72,7 @@ pub enum Rotation {
     /// Rotate image 180 degrees clockwise - top is near HDMI port
     Clockwise180,
     /// Rotate image 270 degrees clockwise - top is near micro SD card
-    Clockwise270
+    Clockwise270,
 }
 
 /// Represents an orientation from the IMU
@@ -98,7 +98,7 @@ pub struct SenseHat<'a> {
     /// Current LED contents
     image: Image,
     /// Handle to the framebuffer
-    screen: Screen
+    screen: Screen,
 }
 
 /// Errors that this crate can return
@@ -109,7 +109,7 @@ pub enum SenseHatError {
     PositionOutOfBounds,
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
-    FramebufferError(sensehat_screen::FramebufferError)
+    FramebufferError(sensehat_screen::FramebufferError),
 }
 
 /// An image on the LED matrix
@@ -125,7 +125,7 @@ pub enum DrawMode {
     /// Write this change to the display now
     OutputNow,
     /// Buffer this change internally
-    BufferInternally
+    BufferInternally,
 }
 
 impl<'a> SenseHat<'a> {
@@ -146,7 +146,7 @@ impl<'a> SenseHat<'a> {
             },
             rotation: Rotation::Normal,
             image: Image([blue_pixel; LED_NUM_PIXELS]),
-            screen: Screen::open("/dev/fb1")?
+            screen: Screen::open("/dev/fb1")?,
         })
     }
 
@@ -155,8 +155,9 @@ impl<'a> SenseHat<'a> {
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
-            Ok(Temperature::from_celsius(self.pressure_chip
-                .get_temp_celcius()?))
+            Ok(Temperature::from_celsius(
+                self.pressure_chip.get_temp_celcius()?
+            ))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -166,8 +167,9 @@ impl<'a> SenseHat<'a> {
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
-            Ok(Pressure::from_hectopascals(self.pressure_chip
-                .get_pressure_hpa()?))
+            Ok(Pressure::from_hectopascals(
+                self.pressure_chip.get_pressure_hpa()?
+            ))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -267,11 +269,16 @@ impl<'a> SenseHat<'a> {
 
     /// Get the whole buffered image.
     pub fn get_pixels(&self) -> Image {
-        return self.image.clone()
+        return self.image.clone();
     }
 
     /// Set the colour of a single pixel.
-    pub fn set_pixel(&mut self, position: PixelPosition, color: PixelColor, redraw: DrawMode) -> SenseHatResult<()> {
+    pub fn set_pixel(
+        &mut self,
+        position: PixelPosition,
+        color: PixelColor,
+        redraw: DrawMode,
+    ) -> SenseHatResult<()> {
         self.image.0[position.pixel()] = color;
         match redraw {
             DrawMode::OutputNow => self.redraw(),
@@ -286,14 +293,31 @@ impl<'a> SenseHat<'a> {
     }
 
     /// Scroll a message across the screen. Blocks until completion.
-    pub fn show_message(&mut self, message: &str, speed: f32, text: PixelColor, background: PixelColor) -> SenseHatResult<()> {
-        println!("Would should show {:?} at {} seconds/frame in {:?}/{:?}", message, speed, text, background);
+    pub fn show_message(
+        &mut self,
+        message: &str,
+        speed: f32,
+        text: PixelColor,
+        background: PixelColor,
+    ) -> SenseHatResult<()> {
+        println!(
+            "Would should show {:?} at {} seconds/frame in {:?}/{:?}",
+            message, speed, text, background
+        );
         Ok(())
     }
 
     /// Write a single character to the screen
-    pub fn show_letter(&mut self, letter: char, text: PixelColor, background: PixelColor) -> SenseHatResult<()> {
-        println!("Would should show {:?} in {:?}/{:?}", letter, text, background);
+    pub fn show_letter(
+        &mut self,
+        letter: char,
+        text: PixelColor,
+        background: PixelColor,
+    ) -> SenseHatResult<()> {
+        println!(
+            "Would should show {:?} in {:?}/{:?}",
+            letter, text, background
+        );
         Ok(())
     }
 
@@ -319,13 +343,17 @@ impl<'a> SenseHat<'a> {
 impl PixelPosition {
     pub fn new(x: u8, y: u8) -> Result<PixelPosition, String> {
         if x >= LED_WIDTH {
-            Err(format!("X value {} is larger than maximum {}", x, LED_WIDTH))
+            Err(format!(
+                "X value {} is larger than maximum {}",
+                x, LED_WIDTH
+            ))
         } else if y >= LED_HEIGHT {
-            Err(format!("Y value {} is larger than maximum {}", y, LED_HEIGHT))
+            Err(format!(
+                "Y value {} is larger than maximum {}",
+                y, LED_HEIGHT
+            ))
         } else {
-            Ok(PixelPosition {
-                x, y
-            })
+            Ok(PixelPosition { x, y })
         }
     }
 
@@ -401,16 +429,10 @@ impl PixelPosition {
 impl Image {
     fn rotate_mut(&mut self, rotation: Rotation) {
         match rotation {
-            Rotation::Normal => {},
-            Rotation::Clockwise90 => {
-                unimplemented!()
-            }
-            Rotation::Clockwise180 => {
-                unimplemented!()
-            }
-            Rotation::Clockwise270 => {
-                unimplemented!()
-            }
+            Rotation::Normal => {}
+            Rotation::Clockwise90 => unimplemented!(),
+            Rotation::Clockwise180 => unimplemented!(),
+            Rotation::Clockwise270 => unimplemented!(),
         }
     }
 
@@ -459,17 +481,26 @@ mod test {
     #[test]
     fn move_right() {
         let p0 = PixelPosition::new(0, 0).unwrap();
-        assert_eq!(PixelPosition::new(1, 0).unwrap(), p0.right(1, Translation::Wrap));
+        assert_eq!(
+            PixelPosition::new(1, 0).unwrap(),
+            p0.right(1, Translation::Wrap)
+        );
     }
     #[test]
     fn move_up() {
         let p0 = PixelPosition::new(0, 0).unwrap();
-        assert_eq!(PixelPosition::new(0, 1).unwrap(), p0.up(1, Translation::Wrap));
+        assert_eq!(
+            PixelPosition::new(0, 1).unwrap(),
+            p0.up(1, Translation::Wrap)
+        );
     }
     #[test]
     fn move_up_right() {
         let p0 = PixelPosition::new(0, 0).unwrap();
-        assert_eq!(PixelPosition::new(1, 1).unwrap(), p0.up(1, Translation::Wrap).right(1, Translation::Wrap));
+        assert_eq!(
+            PixelPosition::new(1, 1).unwrap(),
+            p0.up(1, Translation::Wrap).right(1, Translation::Wrap)
+        );
     }
     #[test]
     fn move_up_wrap() {
@@ -507,7 +538,10 @@ mod test {
     fn move_up_right_clip() {
         let p0 = PixelPosition::new(0, 0).unwrap();
         let p1 = PixelPosition::new(7, 7).unwrap();
-        assert_eq!(p1, p0.right(100, Translation::Clip).up(100, Translation::Clip));
+        assert_eq!(
+            p1,
+            p0.right(100, Translation::Clip).up(100, Translation::Clip)
+        );
     }
 }
 
