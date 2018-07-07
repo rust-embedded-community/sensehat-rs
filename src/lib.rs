@@ -25,13 +25,13 @@ extern crate libc;
 #[cfg(feature = "led-matrix")]
 extern crate sensehat_screen;
 
-mod rh;
 mod hts221;
 mod lps25h;
+mod rh;
 
-pub use measurements::Temperature;
-pub use measurements::Pressure;
 pub use measurements::Angle;
+pub use measurements::Pressure;
+pub use measurements::Temperature;
 pub use rh::RelativeHumidity;
 
 use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
@@ -99,8 +99,9 @@ impl<'a> SenseHat<'a> {
     pub fn get_temperature_from_pressure(&mut self) -> SenseHatResult<Temperature> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
-            Ok(Temperature::from_celsius(self.pressure_chip
-                .get_temp_celcius()?))
+            Ok(Temperature::from_celsius(
+                self.pressure_chip.get_temp_celcius()?
+            ))
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -110,8 +111,9 @@ impl<'a> SenseHat<'a> {
     pub fn get_pressure(&mut self) -> SenseHatResult<Pressure> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
-            Ok(Pressure::from_hectopascals(self.pressure_chip
-                .get_pressure_hpa()?))
+            Ok(Pressure::from_hectopascals(
+                self.pressure_chip.get_pressure_hpa()?
+            ))
         } else {
             Err(SenseHatError::NotReady)
         }

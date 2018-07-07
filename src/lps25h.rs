@@ -1,8 +1,8 @@
 //! * Driver for the LPS25H Pressure sensor
 //! See <http://www.st.com/en/mems-and-sensors/lps25h.html>
 
-use i2cdev::core::I2CDevice;
 use byteorder::{ByteOrder, LittleEndian};
+use i2cdev::core::I2CDevice;
 
 pub const REG_RES_CONF: u8 = 0x10;
 pub const REG_CTRL_REG_1: u8 = 0x20;
@@ -50,7 +50,8 @@ where
 
     /// Obtain the temperature reading from the chip in deg C.
     pub fn get_temp_celcius(&mut self) -> Result<f64, T::Error> {
-        self.get_temp().and_then(|c| Ok((f64::from(c) / 480.0) + 42.5))
+        self.get_temp()
+            .and_then(|c| Ok((f64::from(c) / 480.0) + 42.5))
     }
 
     /// Obtain the pressure reading from the chip.

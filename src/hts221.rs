@@ -1,8 +1,8 @@
 //! * Driver for the HTS221 humidity sensor
 //! See `http://www.st.com/content/st_com/en/products/mems-and-sensors/humidity-sensors/hts221.html`
 
-use i2cdev::core::I2CDevice;
 use byteorder::{ByteOrder, LittleEndian};
+use i2cdev::core::I2CDevice;
 
 pub const REG_AV_CONF: u8 = 0x10;
 pub const REG_CTRL1: u8 = 0x20;
