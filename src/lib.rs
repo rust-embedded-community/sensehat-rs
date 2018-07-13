@@ -60,6 +60,10 @@ pub struct Vector3D {
     pub z: f64,
 }
 
+/// Represents an RGB colour
+#[cfg(feature = "led-matrix")]
+pub use sensehat_screen::color::PixelColor as Colour;
+
 /// A collection of all the data from the IMU
 #[derive(Debug, Default)]
 struct ImuData {
@@ -92,6 +96,8 @@ pub enum SenseHatError {
     GenericError,
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
+    ScreenError,
+    CharacterError(std::string::FromUtf16Error)
 }
 
 /// A shortcut for Results that can return `T` or `SenseHatError`
@@ -229,6 +235,40 @@ impl<'a> SenseHat<'a> {
             None => Err(SenseHatError::NotReady)
         }
     }
+
+    /// Displays a scrolling message on the LED matrix.
+    ///
+    /// Blocks until the entire message has scrolled past.
+    #[cfg(feature = "led-matrix")]
+    pub fn text(&mut self, message: &str, fg: Colour, bg: Colour) -> SenseHatResult<()> {
+        // Connect to our LED Matrix screen.
+        let mut screen = sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+        // Get the default `FontCollection`.
+        let fonts = sensehat_screen::FontCollection::new();
+        // Create a sanitized `FontString`.
+        let sanitized = fonts.sanitize_str(message)?;
+        // Render the `FontString` as a vector of pixel frames.
+        let pixel_frames = sanitized.pixel_frames(fg, bg);
+        // Create a `Scroll` from the pixel frame vector.
+        let scroll = sensehat_screen::Scroll::new(&pixel_frames);
+        // Consume the `FrameSequence` returned by the `left_to_right` method.
+        scroll.right_to_left().for_each(|frame| {
+            screen.write_frame(&frame.frame_line());
+            ::std::thread::sleep(::std::time::Duration::from_millis(100));
+        });
+        Ok(())
+    }
+
+    /// Clears the LED matrix
+    #[cfg(feature = "led-matrix")]
+    pub fn clear(&mut self) -> SenseHatResult<()> {
+        // Connect to our LED Matrix screen.
+        let mut screen = sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+        // Send a blank image to clear the screen
+        const OFF: [u8; 128] = [0x00; 128];
+        screen.write_frame(&sensehat_screen::FrameLine::from_slice(&OFF));
+        Ok(())
+    }
 }
 
 impl From<LinuxI2CError> for SenseHatError {
@@ -242,5 +282,12 @@ impl From<lsm9ds1::Error> for SenseHatError {
         SenseHatError::LSM9DS1Error(err)
     }
 }
+
+impl From<std::string::FromUtf16Error> for SenseHatError {
+    fn from(err: std::string::FromUtf16Error) -> SenseHatError {
+        SenseHatError::CharacterError(err)
+    }
+}
+
 
 // End of file

@@ -1,6 +1,6 @@
 [package]
 name = "sensehat"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Jonathan Pallant <github@thejpster.org.uk>"]
 license-file = "LICENSE.md"
 documentation = "https://docs.rs/crate/sensehat"
@@ -22,11 +22,12 @@ gcc = "0.3"
 [features]
 # The default set of optional packages. Most people will want to use these
 # packages, but they are strictly optional.
-default = ["rtimu"]
-rtimu = [ "libc" ]
+default = ["rtimu", "led-matrix"]
+# Extra packages required by these features.
+rtimu = ["libc"]
 led-matrix = ["sensehat-screen"]
 
 [package.metadata.docs.rs]
-features = [ ]
+features = ["led-matrix"]
 all-features = false
 no-default-features = true
