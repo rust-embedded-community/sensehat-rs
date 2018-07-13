@@ -52,6 +52,27 @@ pub struct Orientation {
     pub yaw: Angle,
 }
 
+/// Represents a 3D vector
+#[derive(Debug, Copy, Clone)]
+pub struct Vector3D {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+/// A collection of all the data from the IMU
+#[derive(Debug, Default)]
+struct ImuData {
+    timestamp: u64,
+    fusion_pose: Option<Orientation>,
+    gyro: Option<Vector3D>,
+    accel: Option<Vector3D>,
+    compass: Option<Vector3D>,
+    pressure: Option<f64>,
+    temperature: Option<f64>,
+    humidity: Option<f64>,
+}
+
 /// Represents the Sense HAT itself
 pub struct SenseHat<'a> {
     /// LPS25H pressure sensor
@@ -61,7 +82,7 @@ pub struct SenseHat<'a> {
     /// LSM9DS1 IMU device
     accelerometer_chip: lsm9ds1::Lsm9ds1<'a>,
     /// Cached data
-    orientation: Orientation,
+    data: ImuData,
 }
 
 /// Errors that this crate can return
@@ -86,11 +107,7 @@ impl<'a> SenseHat<'a> {
             humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
             pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
             accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
-            orientation: Orientation {
-                roll: Angle::from_degrees(0.0),
-                pitch: Angle::from_degrees(0.0),
-                yaw: Angle::from_degrees(0.0),
-            },
+            data: ImuData::default(),
         })
     }
 
@@ -148,9 +165,12 @@ impl<'a> SenseHat<'a> {
     pub fn get_orientation(&mut self) -> SenseHatResult<Orientation> {
         self.accelerometer_chip.set_fusion();
         if self.accelerometer_chip.imu_read() {
-            self.orientation = self.accelerometer_chip.get_imu_data()?;
+            self.data = self.accelerometer_chip.get_imu_data()?;
         }
-        Ok(self.orientation)
+        match self.data.fusion_pose {
+            Some(o) => Ok(o),
+            None => Err(SenseHatError::NotReady)
+        }
     }
 
     /// Get the compass heading (ignoring gyro and magnetometer)
@@ -158,8 +178,11 @@ impl<'a> SenseHat<'a> {
         self.accelerometer_chip.set_compass_only();
         if self.accelerometer_chip.imu_read() {
             // Don't cache this data
-            let orientation = self.accelerometer_chip.get_imu_data()?;
-            Ok(orientation.yaw)
+            let data = self.accelerometer_chip.get_imu_data()?;
+            match data.fusion_pose {
+                Some(o) => Ok(o.yaw),
+                None => Err(SenseHatError::NotReady)
+            }
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -170,8 +193,11 @@ impl<'a> SenseHat<'a> {
     pub fn get_gyro(&mut self) -> SenseHatResult<Orientation> {
         self.accelerometer_chip.set_gyro_only();
         if self.accelerometer_chip.imu_read() {
-            let orientation = self.accelerometer_chip.get_imu_data()?;
-            Ok(orientation)
+            let data = self.accelerometer_chip.get_imu_data()?;
+            match data.fusion_pose {
+                Some(o) => Ok(o),
+                None => Err(SenseHatError::NotReady)
+            }
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -182,10 +208,25 @@ impl<'a> SenseHat<'a> {
     pub fn get_accel(&mut self) -> SenseHatResult<Orientation> {
         self.accelerometer_chip.set_accel_only();
         if self.accelerometer_chip.imu_read() {
-            let orientation = self.accelerometer_chip.get_imu_data()?;
-            Ok(orientation)
+            let data = self.accelerometer_chip.get_imu_data()?;
+            match data.fusion_pose {
+                Some(o) => Ok(o),
+                None => Err(SenseHatError::NotReady)
+            }
         } else {
             Err(SenseHatError::NotReady)
+        }
+    }
+
+    /// Returns a vector representing the current acceleration in Gs.
+    pub fn get_accel_raw(&mut self) -> SenseHatResult<Vector3D> {
+        self.accelerometer_chip.set_accel_only();
+        if self.accelerometer_chip.imu_read() {
+            self.data = self.accelerometer_chip.get_imu_data()?;
+        }
+        match self.data.accel {
+            Some(a) => Ok(a),
+            None => Err(SenseHatError::NotReady)
         }
     }
 }

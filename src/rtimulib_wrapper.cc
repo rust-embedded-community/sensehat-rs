@@ -8,10 +8,28 @@ struct WrapperContext {
     uint32_t magic;
 };
 
-struct Orientation {
+struct Vector3D {
     double x;
     double y;
     double z;
+};
+
+struct AllData {
+    uint64_t timestamp;
+    int fusionPoseValid;
+    Vector3D fusionPose;
+    int gyroValid;
+    Vector3D gyro;
+    int accelValid;
+    Vector3D accel;
+    int compassValid;
+    Vector3D compass;
+    int pressureValid;
+    double pressure;
+    int temperatureValid;
+    double temperature;
+    int humidityValid;
+    double humidity;
 };
 
 extern "C" {
@@ -19,7 +37,7 @@ extern "C" {
     void rtimulib_wrapper_destroy(WrapperContext* p_context);
     void rtimulib_set_sensors(WrapperContext* p_context, int gyro, int accel, int compass);
     int rtimulib_wrapper_imu_read(WrapperContext* p_context);
-    int rtimulib_wrapper_get_imu_data(WrapperContext* p_context, Orientation* p_output);
+    int rtimulib_wrapper_get_imu_fusion_pose(WrapperContext* p_context, Vector3D* p_output);
 }
 
 WrapperContext* rtimulib_wrapper_create(void) {
@@ -52,12 +70,44 @@ int rtimulib_wrapper_imu_read(WrapperContext* p_context) {
     return p_context->p_imu->IMURead();
 }
 
-int rtimulib_wrapper_get_imu_data(WrapperContext* p_context, Orientation* p_output) {
+int rtimulib_wrapper_get_imu_data(WrapperContext* p_context, AllData* p_output) {
     RTIMU_DATA imuData = p_context->p_imu->getIMUData();
-    if (imuData.fusionPoseValid && p_output) {
-        p_output->x = imuData.fusionPose.x();
-        p_output->y = imuData.fusionPose.y();
-        p_output->z = imuData.fusionPose.z();
-    };
-    return imuData.fusionPoseValid;
+    p_output->timestamp = imuData.timestamp;
+    p_output->fusionPoseValid = imuData.fusionPoseValid;
+    if (p_output->fusionPoseValid) {
+        p_output->fusionPose.x = imuData.fusionPose.x();
+        p_output->fusionPose.y = imuData.fusionPose.y();
+        p_output->fusionPose.z = imuData.fusionPose.z();
+    }
+    p_output->gyroValid = imuData.gyroValid;
+    if (p_output->gyroValid) {
+        p_output->gyro.x = imuData.gyro.x();
+        p_output->gyro.y = imuData.gyro.y();
+        p_output->gyro.z = imuData.gyro.z();
+    }
+    p_output->accelValid = imuData.accelValid;
+    if (p_output->accelValid) {
+        p_output->accel.x = imuData.accel.x();
+        p_output->accel.y = imuData.accel.y();
+        p_output->accel.z = imuData.accel.z();
+    }
+    p_output->compassValid = imuData.compassValid;
+    if (p_output->compassValid) {
+        p_output->compass.x = imuData.compass.x();
+        p_output->compass.y = imuData.compass.y();
+        p_output->compass.z = imuData.compass.z();
+    }
+    p_output->pressureValid = imuData.pressureValid;
+    if (p_output->pressureValid) {
+        p_output->pressure = imuData.pressure;
+    }
+    p_output->temperatureValid = imuData.temperatureValid;
+    if (p_output->temperatureValid) {
+        p_output->temperature = imuData.temperature;
+    }
+    p_output->humidityValid = imuData.humidityValid;
+    if (p_output->humidityValid) {
+        p_output->humidity = imuData.humidity;
+    }
+    return 1;
 }
