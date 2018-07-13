@@ -2,10 +2,8 @@
 //!
 //! This is just a placeholder so the the docs build without RTIMULib.
 
-use super::{Angle, Orientation};
+use super::ImuData;
 use std::marker::PhantomData;
-
-enum RTIMULibContext {}
 
 #[derive(Debug)]
 pub enum Error {
@@ -18,7 +16,7 @@ pub struct Lsm9ds1<'a> {
 
 impl<'a> Lsm9ds1<'a> {
     /// Uses the `RTIMULib` library.
-    pub fn new() -> Result<Lsm9ds1<'a>, Error> {
+    pub(crate) fn new() -> Result<Lsm9ds1<'a>, Error> {
         Ok(Lsm9ds1 {
             phantom: PhantomData,
         })
@@ -26,19 +24,19 @@ impl<'a> Lsm9ds1<'a> {
 
     /// Make the IMU do some work. When this function returns true, the IMU
     /// has data we can fetch with `get_imu_data()`.
-    pub fn imu_read(&mut self) -> bool {
+    pub(crate) fn imu_read(&mut self) -> bool {
         false
     }
 
-    pub fn set_fusion(&mut self) {}
+    pub(crate) fn set_fusion(&mut self) {}
 
-    pub fn set_compass_only(&mut self) {}
+    pub(crate) fn set_compass_only(&mut self) {}
 
-    pub fn set_gyro_only(&mut self) {}
+    pub(crate) fn set_gyro_only(&mut self) {}
 
-    pub fn set_accel_only(&mut self) {}
+    pub(crate) fn set_accel_only(&mut self) {}
 
-    pub fn get_imu_data(&mut self) -> Result<Orientation, Error> {
+    pub(crate) fn get_imu_data(&mut self) -> Result<ImuData, Error> {
         Err(Error::RTIMULibError)
     }
 }

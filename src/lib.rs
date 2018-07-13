@@ -52,6 +52,31 @@ pub struct Orientation {
     pub yaw: Angle,
 }
 
+/// Represents a 3D vector
+#[derive(Debug, Copy, Clone)]
+pub struct Vector3D {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+/// Represents an RGB colour
+#[cfg(feature = "led-matrix")]
+pub use sensehat_screen::color::PixelColor as Colour;
+
+/// A collection of all the data from the IMU
+#[derive(Debug, Default)]
+struct ImuData {
+    timestamp: u64,
+    fusion_pose: Option<Orientation>,
+    gyro: Option<Vector3D>,
+    accel: Option<Vector3D>,
+    compass: Option<Vector3D>,
+    pressure: Option<f64>,
+    temperature: Option<f64>,
+    humidity: Option<f64>,
+}
+
 /// Represents the Sense HAT itself
 pub struct SenseHat<'a> {
     /// LPS25H pressure sensor
@@ -61,7 +86,7 @@ pub struct SenseHat<'a> {
     /// LSM9DS1 IMU device
     accelerometer_chip: lsm9ds1::Lsm9ds1<'a>,
     /// Cached data
-    orientation: Orientation,
+    data: ImuData,
 }
 
 /// Errors that this crate can return
@@ -71,6 +96,8 @@ pub enum SenseHatError {
     GenericError,
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
+    ScreenError,
+    CharacterError(std::string::FromUtf16Error)
 }
 
 /// A shortcut for Results that can return `T` or `SenseHatError`
@@ -86,11 +113,7 @@ impl<'a> SenseHat<'a> {
             humidity_chip: hts221::Hts221::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5f)?)?,
             pressure_chip: lps25h::Lps25h::new(LinuxI2CDevice::new("/dev/i2c-1", 0x5c)?)?,
             accelerometer_chip: lsm9ds1::Lsm9ds1::new()?,
-            orientation: Orientation {
-                roll: Angle::from_degrees(0.0),
-                pitch: Angle::from_degrees(0.0),
-                yaw: Angle::from_degrees(0.0),
-            },
+            data: ImuData::default(),
         })
     }
 
@@ -148,9 +171,12 @@ impl<'a> SenseHat<'a> {
     pub fn get_orientation(&mut self) -> SenseHatResult<Orientation> {
         self.accelerometer_chip.set_fusion();
         if self.accelerometer_chip.imu_read() {
-            self.orientation = self.accelerometer_chip.get_imu_data()?;
+            self.data = self.accelerometer_chip.get_imu_data()?;
         }
-        Ok(self.orientation)
+        match self.data.fusion_pose {
+            Some(o) => Ok(o),
+            None => Err(SenseHatError::NotReady)
+        }
     }
 
     /// Get the compass heading (ignoring gyro and magnetometer)
@@ -158,8 +184,11 @@ impl<'a> SenseHat<'a> {
         self.accelerometer_chip.set_compass_only();
         if self.accelerometer_chip.imu_read() {
             // Don't cache this data
-            let orientation = self.accelerometer_chip.get_imu_data()?;
-            Ok(orientation.yaw)
+            let data = self.accelerometer_chip.get_imu_data()?;
+            match data.fusion_pose {
+                Some(o) => Ok(o.yaw),
+                None => Err(SenseHatError::NotReady)
+            }
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -170,8 +199,11 @@ impl<'a> SenseHat<'a> {
     pub fn get_gyro(&mut self) -> SenseHatResult<Orientation> {
         self.accelerometer_chip.set_gyro_only();
         if self.accelerometer_chip.imu_read() {
-            let orientation = self.accelerometer_chip.get_imu_data()?;
-            Ok(orientation)
+            let data = self.accelerometer_chip.get_imu_data()?;
+            match data.fusion_pose {
+                Some(o) => Ok(o),
+                None => Err(SenseHatError::NotReady)
+            }
         } else {
             Err(SenseHatError::NotReady)
         }
@@ -182,11 +214,60 @@ impl<'a> SenseHat<'a> {
     pub fn get_accel(&mut self) -> SenseHatResult<Orientation> {
         self.accelerometer_chip.set_accel_only();
         if self.accelerometer_chip.imu_read() {
-            let orientation = self.accelerometer_chip.get_imu_data()?;
-            Ok(orientation)
+            let data = self.accelerometer_chip.get_imu_data()?;
+            match data.fusion_pose {
+                Some(o) => Ok(o),
+                None => Err(SenseHatError::NotReady)
+            }
         } else {
             Err(SenseHatError::NotReady)
         }
+    }
+
+    /// Returns a vector representing the current acceleration in Gs.
+    pub fn get_accel_raw(&mut self) -> SenseHatResult<Vector3D> {
+        self.accelerometer_chip.set_accel_only();
+        if self.accelerometer_chip.imu_read() {
+            self.data = self.accelerometer_chip.get_imu_data()?;
+        }
+        match self.data.accel {
+            Some(a) => Ok(a),
+            None => Err(SenseHatError::NotReady)
+        }
+    }
+
+    /// Displays a scrolling message on the LED matrix.
+    ///
+    /// Blocks until the entire message has scrolled past.
+    #[cfg(feature = "led-matrix")]
+    pub fn text(&mut self, message: &str, fg: Colour, bg: Colour) -> SenseHatResult<()> {
+        // Connect to our LED Matrix screen.
+        let mut screen = sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+        // Get the default `FontCollection`.
+        let fonts = sensehat_screen::FontCollection::new();
+        // Create a sanitized `FontString`.
+        let sanitized = fonts.sanitize_str(message)?;
+        // Render the `FontString` as a vector of pixel frames.
+        let pixel_frames = sanitized.pixel_frames(fg, bg);
+        // Create a `Scroll` from the pixel frame vector.
+        let scroll = sensehat_screen::Scroll::new(&pixel_frames);
+        // Consume the `FrameSequence` returned by the `left_to_right` method.
+        scroll.right_to_left().for_each(|frame| {
+            screen.write_frame(&frame.frame_line());
+            ::std::thread::sleep(::std::time::Duration::from_millis(100));
+        });
+        Ok(())
+    }
+
+    /// Clears the LED matrix
+    #[cfg(feature = "led-matrix")]
+    pub fn clear(&mut self) -> SenseHatResult<()> {
+        // Connect to our LED Matrix screen.
+        let mut screen = sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+        // Send a blank image to clear the screen
+        const OFF: [u8; 128] = [0x00; 128];
+        screen.write_frame(&sensehat_screen::FrameLine::from_slice(&OFF));
+        Ok(())
     }
 }
 
@@ -201,5 +282,12 @@ impl From<lsm9ds1::Error> for SenseHatError {
         SenseHatError::LSM9DS1Error(err)
     }
 }
+
+impl From<std::string::FromUtf16Error> for SenseHatError {
+    fn from(err: std::string::FromUtf16Error) -> SenseHatError {
+        SenseHatError::CharacterError(err)
+    }
+}
+
 
 // End of file
