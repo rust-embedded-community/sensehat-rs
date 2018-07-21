@@ -1,23 +1,45 @@
-//! # A driver for the Raspberry Pi Sense HAT
+//! # Rust support for the Raspberry Pi Sense HAT.
 //!
-//! The [Sense HAT](https://www.raspberrypi.org/products/sense-hat/) is a
-//! sensor board for the Raspberry Pi. It features an LED matrix, a humidity
-//! and temperature sensor, a pressure and temperature sensor and a gyroscope.
+//! The [Raspberry Pi Sense
+//! HAT](https://www.raspberrypi.org/products/sense-hat/) is a sensor board
+//! for the Raspberry Pi. It features an LED matrix, a humidity and
+//! temperature sensor, a pressure and temperature sensor, a joystick and a
+//! gyroscope. See <https://www.raspberrypi.org/products/sense-hat/> for
+//! details on the Sense HAT.
 //!
-//! Supported components:
+//! See <https://github.com/RPi-Distro/python-sense-hat> for the official
+//! Python driver. This one tries to follow the same API as the Python
+//! version.
+//!
+//! See <https://github.com/thejpster/pi-workshop-rs/> for some workshop
+//! materials which use this driver.
+//!
+//! ## Supported components:
 //!
 //! * Humidity and Temperature Sensor (an HTS221)
 //! * Pressure and Temperature Sensor (a LPS25H)
 //! * Gyroscope (an LSM9DS1, requires the RTIMU library)
+//! * LED matrix (partial support for scrolling text only)
 //!
-//! Currently unsupported components:
+//! ## Currently unsupported components:
 //!
-//! * LED matrix
 //! * Joystick
+//!
+//! ## Example use
+//!
+//! ```
+//! use sensehat::{Colour, SenseHat};
+//! if let Ok(mut hat) = SenseHat::new() {
+//!     println!("{:?}", hat.get_pressure());
+//!     hat.text("Hi!", Colour::RED, Colour::WHITE).unwrap();
+//! }
+//! ```
 
 extern crate byteorder;
 extern crate i2cdev;
 extern crate measurements;
+#[cfg(feature = "led-matrix")]
+extern crate tint;
 
 #[cfg(feature = "rtimu")]
 extern crate libc;
@@ -44,7 +66,10 @@ mod lsm9ds1_dummy;
 #[cfg(not(feature = "rtimu"))]
 use lsm9ds1_dummy as lsm9ds1;
 
-/// Represents an orientation from the IMU
+#[cfg(feature = "led-matrix")]
+use sensehat_screen::color::PixelColor;
+
+/// Represents an orientation from the IMU.
 #[derive(Debug, Copy, Clone)]
 pub struct Orientation {
     pub roll: Angle,
@@ -52,7 +77,7 @@ pub struct Orientation {
     pub yaw: Angle,
 }
 
-/// Represents a 3D vector
+/// Represents a 3D vector.
 #[derive(Debug, Copy, Clone)]
 pub struct Vector3D {
     pub x: f64,
@@ -60,11 +85,12 @@ pub struct Vector3D {
     pub z: f64,
 }
 
-/// Represents an RGB colour
+/// Represents an RGB colour.
 #[cfg(feature = "led-matrix")]
-pub use sensehat_screen::color::PixelColor as Colour;
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Colour(PixelColor);
 
-/// A collection of all the data from the IMU
+/// A collection of all the data from the IMU.
 #[derive(Debug, Default)]
 struct ImuData {
     timestamp: u64,
@@ -77,19 +103,19 @@ struct ImuData {
     humidity: Option<f64>,
 }
 
-/// Represents the Sense HAT itself
+/// Represents the Sense HAT itself.
 pub struct SenseHat<'a> {
-    /// LPS25H pressure sensor
+    /// LPS25H pressure sensor.
     pressure_chip: lps25h::Lps25h<LinuxI2CDevice>,
-    /// HTS221 humidity sensor
+    /// HTS221 humidity sensor.
     humidity_chip: hts221::Hts221<LinuxI2CDevice>,
-    /// LSM9DS1 IMU device
+    /// LSM9DS1 IMU device.
     accelerometer_chip: lsm9ds1::Lsm9ds1<'a>,
-    /// Cached data
+    /// Cached accelerometer data.
     data: ImuData,
 }
 
-/// Errors that this crate can return
+/// Errors that this crate can return.
 #[derive(Debug)]
 pub enum SenseHatError {
     NotReady,
@@ -97,10 +123,10 @@ pub enum SenseHatError {
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
     ScreenError,
-    CharacterError(std::string::FromUtf16Error)
+    CharacterError(std::string::FromUtf16Error),
 }
 
-/// A shortcut for Results that can return `T` or `SenseHatError`
+/// A shortcut for Results that can return `T` or `SenseHatError`.
 pub type SenseHatResult<T> = Result<T, SenseHatError>;
 
 impl<'a> SenseHat<'a> {
@@ -175,7 +201,7 @@ impl<'a> SenseHat<'a> {
         }
         match self.data.fusion_pose {
             Some(o) => Ok(o),
-            None => Err(SenseHatError::NotReady)
+            None => Err(SenseHatError::NotReady),
         }
     }
 
@@ -187,7 +213,7 @@ impl<'a> SenseHat<'a> {
             let data = self.accelerometer_chip.get_imu_data()?;
             match data.fusion_pose {
                 Some(o) => Ok(o.yaw),
-                None => Err(SenseHatError::NotReady)
+                None => Err(SenseHatError::NotReady),
             }
         } else {
             Err(SenseHatError::NotReady)
@@ -202,7 +228,7 @@ impl<'a> SenseHat<'a> {
             let data = self.accelerometer_chip.get_imu_data()?;
             match data.fusion_pose {
                 Some(o) => Ok(o),
-                None => Err(SenseHatError::NotReady)
+                None => Err(SenseHatError::NotReady),
             }
         } else {
             Err(SenseHatError::NotReady)
@@ -217,7 +243,7 @@ impl<'a> SenseHat<'a> {
             let data = self.accelerometer_chip.get_imu_data()?;
             match data.fusion_pose {
                 Some(o) => Ok(o),
-                None => Err(SenseHatError::NotReady)
+                None => Err(SenseHatError::NotReady),
             }
         } else {
             Err(SenseHatError::NotReady)
@@ -232,26 +258,36 @@ impl<'a> SenseHat<'a> {
         }
         match self.data.accel {
             Some(a) => Ok(a),
-            None => Err(SenseHatError::NotReady)
+            None => Err(SenseHatError::NotReady),
         }
     }
 
-    /// Displays a scrolling message on the LED matrix.
+    /// Displays a scrolling message on the LED matrix. Blocks until the
+    /// entire message has scrolled past.
     ///
-    /// Blocks until the entire message has scrolled past.
+    /// The `fg` and `bg` values set the foreground and background colours.
+    /// You can either specify:
+    /// * a constant colour like `Colour::WHITE`,
+    /// * a string from the [W3C basic keywords](https://www.w3.org/TR/css-color-3/#html4) like `"white"` or `"purple"`, or
+    /// * an RGB 8-bit triple like `(0, 0xFF, 0)`.
     #[cfg(feature = "led-matrix")]
-    pub fn text(&mut self, message: &str, fg: Colour, bg: Colour) -> SenseHatResult<()> {
+    pub fn text<FG, BG>(&mut self, message: &str, fg: FG, bg: BG) -> SenseHatResult<()>
+    where
+        FG: Into<Colour>,
+        BG: Into<Colour>,
+    {
         // Connect to our LED Matrix screen.
-        let mut screen = sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+        let mut screen =
+            sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
         // Get the default `FontCollection`.
         let fonts = sensehat_screen::FontCollection::new();
         // Create a sanitized `FontString`.
         let sanitized = fonts.sanitize_str(message)?;
         // Render the `FontString` as a vector of pixel frames.
-        let pixel_frames = sanitized.pixel_frames(fg, bg);
+        let pixel_frames = sanitized.pixel_frames(fg.into().0, bg.into().0);
         // Create a `Scroll` from the pixel frame vector.
         let scroll = sensehat_screen::Scroll::new(&pixel_frames);
-        // Consume the `FrameSequence` returned by the `left_to_right` method.
+        // Consume the `FrameSequence` returned by the `right_to_left` method.
         scroll.right_to_left().for_each(|frame| {
             screen.write_frame(&frame.frame_line());
             ::std::thread::sleep(::std::time::Duration::from_millis(100));
@@ -263,7 +299,8 @@ impl<'a> SenseHat<'a> {
     #[cfg(feature = "led-matrix")]
     pub fn clear(&mut self) -> SenseHatResult<()> {
         // Connect to our LED Matrix screen.
-        let mut screen = sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+        let mut screen =
+            sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
         // Send a blank image to clear the screen
         const OFF: [u8; 128] = [0x00; 128];
         screen.write_frame(&sensehat_screen::FrameLine::from_slice(&OFF));
@@ -289,5 +326,52 @@ impl From<std::string::FromUtf16Error> for SenseHatError {
     }
 }
 
+#[cfg(feature = "led-matrix")]
+impl<'a> Into<Colour> for &'a str {
+    fn into(self) -> Colour {
+        let rgb = tint::Color::name(self).unwrap();
+        Colour(rgb.to_rgb255().into())
+    }
+}
+
+#[cfg(feature = "led-matrix")]
+impl<'a> Into<Colour> for (u8, u8, u8) {
+    fn into(self) -> Colour {
+        Colour(self.into())
+    }
+}
+
+#[cfg(feature = "led-matrix")]
+impl Colour {
+    pub const WHITE: Colour = Colour(PixelColor::WHITE);
+    pub const RED: Colour = Colour(PixelColor::RED);
+    pub const GREEN: Colour = Colour(PixelColor::GREEN);
+    pub const BLUE: Colour = Colour(PixelColor::BLUE);
+    pub const BLACK: Colour = Colour(PixelColor::BLACK);
+    pub const YELLOW: Colour = Colour(PixelColor::YELLOW);
+    pub const MAGENTA: Colour = Colour(PixelColor::MAGENTA);
+    pub const CYAN: Colour = Colour(PixelColor::CYAN);
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[cfg(feature = "led-matrix")]
+    #[test]
+    fn check_colours_string() {
+        let colour_str: Colour = "red".into();
+        let colour_const: Colour = Colour::RED;
+        assert_eq!(colour_str, colour_const);
+    }
+
+    #[cfg(feature = "led-matrix")]
+    #[test]
+    fn check_colours_tuple() {
+        let colour_tuple: Colour = (0xFF, 0, 0).into();
+        let colour_const: Colour = Colour::RED;
+        assert_eq!(colour_tuple, colour_const);
+    }
+}
 
 // End of file
