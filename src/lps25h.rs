@@ -15,7 +15,7 @@ pub const REG_TEMP_OUT_L: u8 = 0x2b;
 pub const REG_TEMP_OUT_H: u8 = 0x2c;
 pub const REG_FIFO_CTRL: u8 = 0x2e;
 
-pub struct Lps25h<T: I2CDevice + Sized> {
+pub(crate) struct Lps25h<T: I2CDevice + Sized> {
     i2cdev: T,
 }
 

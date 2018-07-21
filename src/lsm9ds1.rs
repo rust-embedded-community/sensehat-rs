@@ -9,7 +9,7 @@
 //! a C wrapper of the `RTIMULib` C++ API. We then call that unsafe C wrapper
 //! here, ensuring that any memory allocations were undone on drop.
 
-use super::{Angle, Orientation, Vector3D, ImuData};
+use super::{Angle, ImuData, Orientation, Vector3D};
 use libc;
 
 enum RTIMULibContext {}
@@ -147,7 +147,7 @@ impl<'a> Lsm9ds1<'a> {
                 } else {
                     None
                 },
-                compass: if temp.compass_valid != 0{
+                compass: if temp.compass_valid != 0 {
                     Some(Vector3D {
                         x: temp.compass.x,
                         y: temp.compass.y,

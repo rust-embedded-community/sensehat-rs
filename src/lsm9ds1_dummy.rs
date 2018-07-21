@@ -10,7 +10,7 @@ pub enum Error {
     RTIMULibError,
 }
 
-pub struct Lsm9ds1<'a> {
+pub(crate) struct Lsm9ds1<'a> {
     phantom: PhantomData<&'a u32>,
 }
 
