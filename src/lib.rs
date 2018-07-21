@@ -90,6 +90,11 @@ pub struct Vector3D {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Colour(PixelColor);
 
+/// A measure of frames per second.
+#[cfg(feature = "led-matrix")]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Fps(pub u8);
+
 /// A collection of all the data from the IMU.
 #[derive(Debug, Default)]
 struct ImuData {
@@ -265,17 +270,23 @@ impl<'a> SenseHat<'a> {
     /// Displays a scrolling message on the LED matrix. Blocks until the
     /// entire message has scrolled past.
     ///
+    /// The `interval` can be a `std::time::Duration` or an `Fps` (frames per
+    /// second).
+    ///
     /// The `fg` and `bg` values set the foreground and background colours.
     /// You can either specify:
     /// * a constant colour like `Colour::WHITE`,
     /// * a string from the [W3C basic keywords](https://www.w3.org/TR/css-color-3/#html4) like `"white"` or `"purple"`, or
     /// * an RGB 8-bit triple like `(0, 0xFF, 0)`.
     #[cfg(feature = "led-matrix")]
-    pub fn text<FG, BG>(&mut self, message: &str, fg: FG, bg: BG) -> SenseHatResult<()>
+    pub fn show_message<INT, FG, BG>(&mut self, message: &str, interval: INT, fg: FG, bg: BG) -> SenseHatResult<()>
     where
+        INT: Into<::std::time::Duration>,
         FG: Into<Colour>,
         BG: Into<Colour>,
     {
+        // Calculate our waiting time for each frame
+        let wait_time = interval.into();
         // Connect to our LED Matrix screen.
         let mut screen =
             sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
@@ -290,9 +301,28 @@ impl<'a> SenseHat<'a> {
         // Consume the `FrameSequence` returned by the `right_to_left` method.
         scroll.right_to_left().for_each(|frame| {
             screen.write_frame(&frame.frame_line());
-            ::std::thread::sleep(::std::time::Duration::from_millis(100));
+            ::std::thread::sleep(wait_time);
         });
         Ok(())
+
+    }
+
+    /// Displays a scrolling message on the LED matrix. Blocks until the
+    /// entire message has scrolled past. Scrolls at a fixed 10 frames per
+    /// second.
+    ///
+    /// The `fg` and `bg` values set the foreground and background colours.
+    /// You can either specify:
+    /// * a constant colour like `Colour::WHITE`,
+    /// * a string from the [W3C basic keywords](https://www.w3.org/TR/css-color-3/#html4) like `"white"` or `"purple"`, or
+    /// * an RGB 8-bit triple like `(0, 0xFF, 0)`.
+    #[cfg(feature = "led-matrix")]
+    pub fn text<FG, BG>(&mut self, message: &str, fg: FG, bg: BG) -> SenseHatResult<()>
+    where
+        FG: Into<Colour>,
+        BG: Into<Colour>,
+    {
+        self.show_message(message, ::std::time::Duration::from_millis(100), fg, bg)
     }
 
     /// Clears the LED matrix
@@ -338,6 +368,13 @@ impl<'a> Into<Colour> for &'a str {
 impl<'a> Into<Colour> for (u8, u8, u8) {
     fn into(self) -> Colour {
         Colour(self.into())
+    }
+}
+
+#[cfg(feature = "led-matrix")]
+impl<'a> Into<::std::time::Duration> for Fps {
+    fn into(self) -> ::std::time::Duration {
+        ::std::time::Duration::new(0, 1_000_000_000 / self.0 as u32)
     }
 }
 
