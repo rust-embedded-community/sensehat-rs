@@ -1,5 +1,3 @@
-#include <cstdio>
-
 #include "RTIMULib.h"
 
 struct WrapperContext {
