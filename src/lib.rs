@@ -67,7 +67,7 @@ mod lsm9ds1_dummy;
 use lsm9ds1_dummy as lsm9ds1;
 
 #[cfg(feature = "led-matrix")]
-use sensehat_screen::color::PixelColor;
+use sensehat_screen::{color::PixelColor, error::ScreenError as ScreenCrateError};
 
 /// Represents an orientation from the IMU.
 #[derive(Debug, Copy, Clone)]
@@ -127,7 +127,7 @@ pub enum SenseHatError {
     GenericError,
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
-    ScreenError,
+    ScreenError(ScreenCrateError),
     CharacterError(std::string::FromUtf16Error),
 }
 
@@ -289,7 +289,7 @@ impl<'a> SenseHat<'a> {
         let wait_time = interval.into();
         // Connect to our LED Matrix screen.
         let mut screen =
-            sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+            sensehat_screen::Screen::open("/dev/fb1")?;
         // Get the default `FontCollection`.
         let fonts = sensehat_screen::FontCollection::new();
         // Create a sanitized `FontString`.
@@ -330,7 +330,7 @@ impl<'a> SenseHat<'a> {
     pub fn clear(&mut self) -> SenseHatResult<()> {
         // Connect to our LED Matrix screen.
         let mut screen =
-            sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+            sensehat_screen::Screen::open("/dev/fb1")?;
         // Send a blank image to clear the screen
         const OFF: [u8; 128] = [0x00; 128];
         screen.write_frame(&sensehat_screen::FrameLine::from_slice(&OFF));
@@ -347,6 +347,12 @@ impl From<LinuxI2CError> for SenseHatError {
 impl From<lsm9ds1::Error> for SenseHatError {
     fn from(err: lsm9ds1::Error) -> SenseHatError {
         SenseHatError::LSM9DS1Error(err)
+    }
+}
+
+impl From<ScreenCrateError> for SenseHatError {
+    fn from(err: ScreenCrateError) -> SenseHatError {
+        SenseHatError::ScreenError(err)
     }
 }
 
