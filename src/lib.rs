@@ -127,7 +127,7 @@ pub enum SenseHatError {
     GenericError,
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
-    ScreenError,
+    ScreenError(sensehat_screen::error::ScreenError),
     CharacterError(std::string::FromUtf16Error),
 }
 
@@ -288,8 +288,7 @@ impl<'a> SenseHat<'a> {
         // Calculate our waiting time for each frame
         let wait_time = interval.into();
         // Connect to our LED Matrix screen.
-        let mut screen =
-            sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+        let mut screen = sensehat_screen::Screen::open("/dev/fb1")?;
         // Get the default `FontCollection`.
         let fonts = sensehat_screen::FontCollection::new();
         // Create a sanitized `FontString`.
@@ -329,8 +328,7 @@ impl<'a> SenseHat<'a> {
     #[cfg(feature = "led-matrix")]
     pub fn clear(&mut self) -> SenseHatResult<()> {
         // Connect to our LED Matrix screen.
-        let mut screen =
-            sensehat_screen::Screen::open("/dev/fb1").map_err(|_| SenseHatError::ScreenError)?;
+        let mut screen = sensehat_screen::Screen::open("/dev/fb1")?;
         // Send a blank image to clear the screen
         const OFF: [u8; 128] = [0x00; 128];
         screen.write_frame(&sensehat_screen::FrameLine::from_slice(&OFF));
@@ -353,6 +351,12 @@ impl From<lsm9ds1::Error> for SenseHatError {
 impl From<std::string::FromUtf16Error> for SenseHatError {
     fn from(err: std::string::FromUtf16Error) -> SenseHatError {
         SenseHatError::CharacterError(err)
+    }
+}
+
+impl From<sensehat_screen::error::ScreenError> for SenseHatError {
+    fn from(err: sensehat_screen::error::ScreenError) -> SenseHatError {
+        SenseHatError::ScreenError(err)
     }
 }
 
