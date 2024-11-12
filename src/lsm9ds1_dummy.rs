@@ -3,11 +3,19 @@
 //! This is just a placeholder so the the docs build without RTIMULib.
 
 use super::ImuData;
-use std::marker::PhantomData;
+use std::{fmt::Display, marker::PhantomData};
 
 #[derive(Debug)]
 pub enum Error {
     RTIMULibError,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::RTIMULibError => write!(f, "RTIMULib Error"),
+        }
+    }
 }
 
 pub(crate) struct Lsm9ds1<'a> {

@@ -51,6 +51,9 @@ mod hts221;
 mod lps25h;
 mod rh;
 
+use std::error::Error;
+use std::fmt::Display;
+
 pub use measurements::Angle;
 pub use measurements::Pressure;
 pub use measurements::Temperature;
@@ -127,9 +130,26 @@ pub enum SenseHatError {
     GenericError,
     I2CError(LinuxI2CError),
     LSM9DS1Error(lsm9ds1::Error),
+    #[cfg(feature = "led-matrix")]
     ScreenError(sensehat_screen::error::ScreenError),
     CharacterError(std::string::FromUtf16Error),
 }
+
+impl Display for SenseHatError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SenseHatError::NotReady => write!(f, "Not ready error"),
+            SenseHatError::GenericError => write!(f, "Generic error"),
+            SenseHatError::I2CError(err) => write!(f, "I2C error: {}", err),
+            SenseHatError::LSM9DS1Error(err) => write!(f, "LSM9DS1 error: {}", err),
+            #[cfg(feature = "led-matrix")]
+            SenseHatError::ScreenError(err) => write!(f, "Screen error: {}", err),
+            SenseHatError::CharacterError(err) => write!(f, "Character error: {}", err),
+        }
+    }
+}
+
+impl Error for SenseHatError {}
 
 /// A shortcut for Results that can return `T` or `SenseHatError`.
 pub type SenseHatResult<T> = Result<T, SenseHatError>;
@@ -154,7 +174,7 @@ impl<'a> SenseHat<'a> {
         let status = self.pressure_chip.status()?;
         if (status & 1) != 0 {
             Ok(Temperature::from_celsius(
-                self.pressure_chip.get_temp_celcius()?
+                self.pressure_chip.get_temp_celcius()?,
             ))
         } else {
             Err(SenseHatError::NotReady)
@@ -166,7 +186,7 @@ impl<'a> SenseHat<'a> {
         let status = self.pressure_chip.status()?;
         if (status & 2) != 0 {
             Ok(Pressure::from_hectopascals(
-                self.pressure_chip.get_pressure_hpa()?
+                self.pressure_chip.get_pressure_hpa()?,
             ))
         } else {
             Err(SenseHatError::NotReady)
@@ -279,7 +299,13 @@ impl<'a> SenseHat<'a> {
     /// * a string from the [W3C basic keywords](https://www.w3.org/TR/css-color-3/#html4) like `"white"` or `"purple"`, or
     /// * an RGB 8-bit triple like `(0, 0xFF, 0)`.
     #[cfg(feature = "led-matrix")]
-    pub fn show_message<INT, FG, BG>(&mut self, message: &str, interval: INT, fg: FG, bg: BG) -> SenseHatResult<()>
+    pub fn show_message<INT, FG, BG>(
+        &mut self,
+        message: &str,
+        interval: INT,
+        fg: FG,
+        bg: BG,
+    ) -> SenseHatResult<()>
     where
         INT: Into<::std::time::Duration>,
         FG: Into<Colour>,
@@ -303,7 +329,6 @@ impl<'a> SenseHat<'a> {
             ::std::thread::sleep(wait_time);
         });
         Ok(())
-
     }
 
     /// Displays a scrolling message on the LED matrix. Blocks until the
@@ -354,6 +379,7 @@ impl From<std::string::FromUtf16Error> for SenseHatError {
     }
 }
 
+#[cfg(feature = "led-matrix")]
 impl From<sensehat_screen::error::ScreenError> for SenseHatError {
     fn from(err: sensehat_screen::error::ScreenError) -> SenseHatError {
         SenseHatError::ScreenError(err)
