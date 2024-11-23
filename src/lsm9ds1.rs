@@ -9,6 +9,8 @@
 //! a C wrapper of the `RTIMULib` C++ API. We then call that unsafe C wrapper
 //! here, ensuring that any memory allocations were undone on drop.
 
+use std::fmt::Display;
+
 use super::{Angle, ImuData, Orientation, Vector3D};
 use libc;
 
@@ -62,6 +64,16 @@ struct CVector3D {
 pub enum Error {
     RTIMULibError,
 }
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::RTIMULibError => write!(f, "RTIMULib error"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
 
 pub(crate) struct Lsm9ds1<'a> {
     rtimulib_ref: &'a mut RTIMULibContext,
